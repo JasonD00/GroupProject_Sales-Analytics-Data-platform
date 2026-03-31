@@ -21,7 +21,7 @@ A SQL Server data warehouse built on the Medallion Architecture (Bronze, Silver,
 ### Bronze - Raw Ingestion
 Stores data as it arrives from source systems. No transformations are applied. This layer serves as an audit trail and a recovery point if downstream issues occur.
 
-### Silver - Cleansed & Conformed
+### Silver - Cleansed
 Applies cleaning, validation, and standardisation rules to the raw Bronze data. This includes deduplication, null handling, type casting, and joining related entities.
 
 ### Gold - Business-Ready
