@@ -18,33 +18,35 @@ Overview:
 */
 
 
+
 USE master;
 GO
 
--- If a database called 'DataWarehouse' already exists:
--- disconnect and delete it
+-- If a database called 'DW' already exists:
+    Disconnect anyone currently using it
+    Delete it
     
-IF EXISTS (SELECT 1 FROM sys.databases WHERE name = 'DataWarehouse')
+IF EXISTS (SELECT 1 FROM sys.databases WHERE name = 'DW')
 BEGIN
-    ALTER DATABASE DataWarehouse SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE DataWarehouse;
+    ALTER DATABASE DW SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE DW;
 END;
 GO
 
 
--- Create a new empty database called 'DataWarehouse'
+-- Create a new empty database called 'DW'
 -- Switch into that database so the next steps run inside it
 
-CREATE DATABASE DataWarehouse;
+CREATE DATABASE DW;
 GO
 
-USE DataWarehouse;
+USE DW;
 GO
 
 -- Create three separate schemas inside the database:
--- bronze:   for raw, unprocessed data
--- silver:   for cleaned and organised data
--- gold:     for final, business-ready data
+    bronze  -- for raw, unprocessed data
+    silver  -- for cleaned and organised data
+    gold    -- for final, business-ready data
 
 CREATE SCHEMA bronze;
 GO
