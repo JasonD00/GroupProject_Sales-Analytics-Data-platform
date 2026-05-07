@@ -5,6 +5,7 @@ const ALL_NAV_ITEMS = [
   { id: "overview",     label: "Overview",     roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
   { id: "sales",        label: "Sales",        roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
   { id: "products",     label: "Products",     roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
+  { id: "invoices",     label: "Invoices",     roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
   { id: "customers",    label: "Customers",    roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
   { id: "transactions", label: "Transactions", roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
 ];
@@ -13,9 +14,9 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const visibleItems = ALL_NAV_ITEMS.filter((item) =>
-    item.roles.includes(user?.role)
-  );
+  const visibleItems = user 
+  ? ALL_NAV_ITEMS.filter((item) => item.roles.includes(user.role))
+  : ALL_NAV_ITEMS;
 
   const handleLogout = () => {
     logout();
@@ -46,12 +47,6 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
           </button>
         ))}
       </nav>
-
-      <div style={styles.sidebarBottom}>
-        <button style={styles.logoutBtn} onClick={handleLogout}>
-          {sidebarOpen ? <span>Logout</span> : <span>↩</span>}
-        </button>
-      </div>
     </aside>
   );
 }

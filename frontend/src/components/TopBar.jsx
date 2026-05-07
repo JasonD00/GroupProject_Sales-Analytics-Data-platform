@@ -2,7 +2,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
 function TopBar({ pageTitle }) {
-  const { user } = useAuth();
+  const { user, logout, openLoginModel } = useAuth();
   const { isDark, toggleTheme } = useTheme();
 
   const t = isDark ? dark : light;
@@ -12,12 +12,24 @@ function TopBar({ pageTitle }) {
       <h1 style={{ ...styles.pageTitle, color: t.textPrimary }}>{pageTitle}</h1>
       <div style={styles.right}>
         
-        <div style={styles.userInfo}>
-          <span style={{ ...styles.username, color: t.textSecondary }}>{user?.username}</span>
-          <span style={{ ...styles.roleBadge, background: t.badgeBg, color: t.textPrimary }}>{user?.role}</span>
-        </div>
+        {user ? (
+          <>
+            <div style={styles.userInfo}>
+              <span style={{ ...styles.username, color: t.textSecondary }}>{user.username}</span>
+              <span style={{ ...styles.roleBadge, background: t.badgeBg, color: t.textPrimary }}>{user.role}</span>
+            </div>
+            <button style={{ ...styles.logoutBtn, background: t.toggleBg, color: t.textPrimary }} onClick={logout}>
+              Logout
+            </button>
+          </>
+        ) : (
+          <button style={styles.loginBtn} onClick={openLoginModel}>
+            Sign In
+          </button>
+        )}
+
         <button style={{ ...styles.themeBtn, background: t.toggleBg, color: t.textPrimary }} onClick={toggleTheme}>
-          {isDark ? " Light" : "Dark"}
+          {isDark ? "Light" : "Dark"}
         </button>
       </div>
     </header>
@@ -83,6 +95,24 @@ const styles = {
     fontSize: "12px",
     fontWeight: "700",
     letterSpacing: "0.3px",
+  },
+  logoutBtn: {
+    padding: "6px 14px",
+    borderRadius: "20px",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: "600",
+  },
+  loginBtn: {
+    padding: "8px 20px",
+    borderRadius: "20px",
+    border: "none",
+    background: "#1a2a6c",
+    color: "#fff",
+    cursor: "pointer",
+    fontSize: "14px",
+    fontWeight: "600",
   },
 };
 
