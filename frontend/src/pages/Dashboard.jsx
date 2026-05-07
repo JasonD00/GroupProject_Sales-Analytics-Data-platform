@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import Sidebar from "../components/Sidebar";
 import TopBar from "../components/TopBar";
+import LoginModel from "../components/LoginModel";
 import Overview from "./dashboard/Overview";
 import Sales from "./dashboard/Sales";
 import Products from "./dashboard/Products";
@@ -14,11 +16,10 @@ const pageTitles = {
   products:     "Products",
   customers:    "Customers",
   transactions: "Transactions",
-  reports:      "Reports",
-  users:        "User Management",
 };
 
 function Dashboard() {
+  const { showLoginModel } = useAuth();
   const { isDark } = useTheme();
   const [activeNav, setActiveNav] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -41,8 +42,6 @@ function Dashboard() {
           {activeNav === "products"     && <Products />}
           {activeNav === "customers"    && <Customers />}
           {activeNav === "transactions" && <Transactions />}
-          {activeNav === "reports"      && <Reports />}
-          {activeNav === "users"        && <UserManagement />}
         </div>
       </main>
     </div>
