@@ -93,9 +93,9 @@ GO
 
 CREATE TABLE bronze.erp_product_details (
 product_key NVARCHAR(50),
-Product_category NVARCHAR(50),
-Product_subcategory	NVARCHAR(50),
-Product_maintenance	 NVARCHAR(50),
+product_category NVARCHAR(50),
+product_subcategory	NVARCHAR(50),
+product_maintenance	 NVARCHAR(50),
 product_level INT
 );
 GO	
@@ -107,9 +107,9 @@ GO
 
 
 CREATE TABLE bronze.erp_invoice_transactions (
-Invoice_id NVARCHAR(50),				
-Invoice_ord_num NVARCHAR(50),	
-Invoice_status	NVARCHAR(50),	
-Invoice_issue_dt DATE
+invoice_id NVARCHAR(50),				
+invoice_ord_num NVARCHAR(50),	
+invoice_status	NVARCHAR(50),	
+invoice_issue_dt DATE
 );
 GO
