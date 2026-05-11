@@ -36,8 +36,8 @@ prod_key NVARCHAR(50),
 prod_nm NVARCHAR(50),
 prod_cost INT,
 prod_type NVARCHAR(50),
-prod_start_dt DATETIME,
-prod_end_dt DATETIME,
+prod_start_dt DATE,
+prod_end_dt DATE,
 dw_create_date    DATETIME2 DEFAULT GETDATE()
 );
 GO
@@ -86,9 +86,9 @@ GO
 
 CREATE TABLE silver.erp_product_details (
 product_key NVARCHAR(50),
-Product_category NVARCHAR(50),
-Product_subcategory	NVARCHAR(50),
-Product_maintenance	 NVARCHAR(50),
+product_category NVARCHAR(50),
+product_subcategory	NVARCHAR(50),
+product_maintenance	 NVARCHAR(50),
 product_level INT,
 dw_create_date    DATETIME2 DEFAULT GETDATE()
 );
@@ -101,10 +101,10 @@ GO
 
 
 CREATE TABLE silver.erp_invoice_transactions (
-Invoice_id NVARCHAR(50),				
-Invoice_ord_num NVARCHAR(50),	
-Invoice_status	NVARCHAR(50),	
-Invoice_issue_dt DATE,
+invoice_id NVARCHAR(50),				
+invoice_ord_num NVARCHAR(50),	
+invoice_status	NVARCHAR(50),	
+invoice_issue_dt DATE,
 dw_create_date    DATETIME2 DEFAULT GETDATE()
 );
 GO
