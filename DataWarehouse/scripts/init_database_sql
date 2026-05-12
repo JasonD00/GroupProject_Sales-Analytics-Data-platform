@@ -1,0 +1,57 @@
+
+/*
+================================================================
+Sales Data Warehouse -- Database & Schema Initialisation
+================================================================
+Overview:
+    Initialises the DataWarehouse database ready for use.
+    Builds out the three Medallion Architecture layers:
+    Bronze (raw), Silver (cleaned), and Gold (business-ready).
+
+    If a previous version of the database exists, rebuilt cleanly from scratch.
+
+
+    The whole 'DataWarehouse' database if it exists will be dropped. 
+    Any existing data inside the DataWarehouse database will be permanently lost.
+    Make sure backups exist before running the script.
+================================================================
+*/
+
+
+USE master;
+GO
+
+-- If a database called 'DW' already exists:
+--    Disconnect anyone currently using it
+--  Delete it
+    
+IF EXISTS (SELECT 1 FROM sys.databases WHERE name = 'DW')
+BEGIN
+    ALTER DATABASE DW SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE DW;
+END;
+GO
+
+
+-- Create a new empty database called 'DW'
+-- Switch into that database so the next steps run inside it
+
+CREATE DATABASE DW;
+GO
+
+USE DW;
+GO
+
+-- Create three separate schemas inside the database:
+--    bronze  -- for raw, unprocessed data
+--    silver  -- for cleaned and organised data
+--    gold    -- for final, business-ready data
+
+CREATE SCHEMA bronze;
+GO
+
+CREATE SCHEMA silver;
+GO
+
+CREATE SCHEMA gold;
+GO
