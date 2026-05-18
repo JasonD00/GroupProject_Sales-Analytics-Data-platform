@@ -11,7 +11,6 @@ function SalesChart({ data = [], type = "bar", title, isDetailed = false }) {
 
   const [dateFilter, setDateFilter] = useState("all");
 
-  // Apply filter only in detailed mode
   const filteredData = isDetailed && dateFilter !== "all" 
     ? data.slice(-parseInt(dateFilter)) 
     : data;

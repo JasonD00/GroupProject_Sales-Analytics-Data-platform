@@ -15,7 +15,7 @@ export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showLoginModel, setShowLoginModel] = useState(false);
 
   const login = (userData) => {
     setUser(userData);
@@ -25,16 +25,16 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const openLoginModal = () => {
-    setShowLoginModal(true);
+  const openLoginModel = () => {
+    setShowLoginModel(true);
   };
 
-  const closeLoginModal = () => {
-    setShowLoginModal(false);
+  const closeLoginModel = () => {
+    setShowLoginModel(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, showLoginModal, openLoginModal, closeLoginModal }}>
+    <AuthContext.Provider value={{ user, login, logout, showLoginModel, openLoginModel, closeLoginModel }}>
       {children}
     </AuthContext.Provider>
   );

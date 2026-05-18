@@ -11,8 +11,12 @@ function LoginModel() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  console.log("LoginModel rendered"); // Debug log
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError("");
+
     if (!username || !password) {
       setError("Please enter both username and password");
       return;
@@ -25,7 +29,7 @@ function LoginModel() {
       login({ username: "analyst", role: "ANALYST" });
       closeLoginModel();
     } else {
-      setError("Invalid credentials");
+      setError("Invalid credentials. Try admin/admin123 or analyst/analyst123");
     }
   };
 
@@ -50,6 +54,7 @@ function LoginModel() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             style={{ ...styles.input, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
+            autoFocus
           />
           <input
             type="password"
@@ -62,7 +67,7 @@ function LoginModel() {
         </form>
 
         <div style={{ ...styles.hint, color: t.textMuted }}>
-          Demo: admin/admin123 or analyst/analyst123
+          Demo credentials: admin/admin123 or analyst/analyst123
         </div>
       </div>
     </div>
