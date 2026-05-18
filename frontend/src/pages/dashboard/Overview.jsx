@@ -5,6 +5,7 @@ import KPICard from "../../components/KPICard";
 import SalesChart from "../../components/SalesChart";
 import TransactionsTable from "../../components/TransactionsTable";
 import PricingSection from "../../components/PricingSection";
+import BenefitsComparisonTable from "../../components/BenefitsComparisonTable";
 
 import {
   getMonthlyRevenue,
@@ -31,14 +32,21 @@ function Overview() {
   const limitedRevenueData = revenueData.slice(-3);
   const limitedTransactions = transactions.slice(0, 3);
 
+  const handleViewDetails = () => {
+    console.log("View Details clicked"); // Debug log
+    openLoginModel();
+  };
+
   return (
     <div style={styles.wrapper}>
+      {/* KPI Cards */}
       <div style={styles.kpiGrid}>
         {kpis.map((kpi) => (
           <KPICard key={kpi.label} {...kpi} />
         ))}
       </div>
 
+      {/* Monthly Revenue Chart */}
       {user ? (
         <SalesChart 
           data={revenueData} 
@@ -56,26 +64,33 @@ function Overview() {
           />
           <div style={{ ...styles.overlay, background: t.overlayBg }}>
             <div style={{ ...styles.lockBox, background: t.lockBoxBg }}>
-              <div style={styles.lockIcon}>🚫🔫</div>
+              <div style={styles.lockIcon}>🔒</div>
               <h3 style={{ ...styles.lockTitle, color: t.textPrimary }}>Premium Analytics</h3>
               <p style={{ ...styles.lockText, color: t.textSecondary }}>
                 Sign in to view full 12-month data and advanced filters
               </p>
-              <button style={styles.unlockBtn} onClick={openLoginModel}>
+              <button style={styles.unlockBtn} onClick={handleViewDetails}>
                 View Detailed Analytics
               </button>
+              <p style={{ ...styles.loginHint, color: t.textMuted }}>
+                You'll need to login to access premium features
+              </p>
             </div>
           </div>
         </div>
       )}
 
+      {/* Recent Transactions */}
       <h2 style={{ ...styles.sectionTitle, color: t.textPrimary }}>
         Recent Transactions {!user && "(Limited Preview)"}
       </h2>
-
       <TransactionsTable transactions={user ? transactions : limitedTransactions} />
 
+      {/* Pricing Section (only show when not logged in) */}
       {!user && <PricingSection />}
+
+      {/* Benefits Comparison Table (only show when not logged in) */}
+      {!user && <BenefitsComparisonTable />}
     </div>
   );
 }
@@ -83,6 +98,7 @@ function Overview() {
 const light = { 
   textPrimary: "#1a2a6c",
   textSecondary: "#555",
+  textMuted: "#888",
   overlayBg: "rgba(255, 255, 255, 0.92)",
   lockBoxBg: "#ffffff",
 };
@@ -90,6 +106,7 @@ const light = {
 const dark = { 
   textPrimary: "#e2e8f0",
   textSecondary: "#94a3b8",
+  textMuted: "#64748b",
   overlayBg: "rgba(15, 23, 42, 0.92)",
   lockBoxBg: "#1e293b",
 };
@@ -129,7 +146,7 @@ const styles = {
     padding: "32px",
     borderRadius: "12px",
     textAlign: "center",
-    maxWidth: "320px",
+    maxWidth: "360px",
     boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
   },
   lockIcon: {
@@ -155,6 +172,11 @@ const styles = {
     fontWeight: "600",
     fontSize: "14px",
     cursor: "pointer",
+  },
+  loginHint: {
+    marginTop: "12px",
+    fontSize: "12px",
+    fontStyle: "italic",
   },
 };
 

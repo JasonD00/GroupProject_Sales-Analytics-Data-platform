@@ -6,7 +6,13 @@ const PLANS = [
     price: "€29",
     period: "Billed Monthly",
     features: [
-      "...",
+      "Up to 5 team members",
+      "Basic sales analytics dashboard",
+      "Monthly performance reports",
+      "Email and SMS support",
+      "Mobile app access",
+      "Basic data export (CSV)",
+      "Community forum access",
     ],
   },
   {
@@ -14,7 +20,15 @@ const PLANS = [
     price: "€75",
     period: "Billed Monthly",
     features: [
-      "...",
+      "Unlimited team members",
+      "Advanced analytics & forecasting",
+      "Custom report builder",
+      "Real-time data sync",
+      "Priority email & phone support",
+      "Advanced data export (CSV, Excel, PDF)",
+      "API access for integrations",
+      "Custom dashboards",
+      "Automated alerts & notifications",
     ],
     popular: true,
   },
@@ -23,7 +37,16 @@ const PLANS = [
     price: "€115",
     period: "Billed Monthly",
     features: [
-      "...",
+      "Everything in Pro, plus:",
+      "Dedicated account manager",
+      "Custom integrations & workflows",
+      "Advanced security features (SSO, 2FA)",
+      "SLA guarantees (99.9% uptime)",
+      "On-premise deployment option",
+      "White-label branding",
+      "Advanced user permissions",
+      "Audit logs & compliance reporting",
+      "24/7 phone support",
     ],
   },
 ];
@@ -31,7 +54,7 @@ const PLANS = [
 function PricingSection() {
   const { isDark } = useTheme();
   const t = isDark ? dark : light;
-
+ 
   return (
     <div style={styles.wrapper}>
       <div style={styles.header}>
@@ -40,7 +63,7 @@ function PricingSection() {
           Choose the plan that fits your business needs
         </p>
       </div>
-
+ 
       <div style={styles.grid}>
         {PLANS.map((plan) => (
           <div
@@ -54,9 +77,13 @@ function PricingSection() {
             {plan.popular && (
               <div style={{ ...styles.badge, background: t.accent }}>Most Popular</div>
             )}
-            <h3 style={{ ...styles.planName, color: plan.popular ? "#fff" : t.textPrimary }}>{plan.name}</h3>
+            <h3 style={{ ...styles.planName, color: plan.popular ? "#fff" : t.textPrimary }}>
+              {plan.name}
+            </h3>
             <div style={styles.priceRow}>
-              <span style={{ ...styles.price, color: plan.popular ? "#fff" : t.textPrimary }}>{plan.price}</span>
+              <span style={{ ...styles.price, color: plan.popular ? "#fff" : t.textPrimary }}>
+                {plan.price}
+              </span>
             </div>
             <p style={{ ...styles.period, color: plan.popular ? "rgba(255,255,255,0.8)" : t.textSecondary }}>
               {plan.period}
@@ -64,6 +91,7 @@ function PricingSection() {
             <ul style={styles.features}>
               {plan.features.map((feature, i) => (
                 <li key={i} style={{ ...styles.feature, color: plan.popular ? "rgba(255,255,255,0.9)" : t.textSecondary }}>
+                  <span style={{ ...styles.checkmark, color: plan.popular ? "#fff" : t.accent }}>✓</span>
                   {feature}
                 </li>
               ))}
@@ -75,7 +103,7 @@ function PricingSection() {
                 color: plan.popular ? t.accent : t.textPrimary,
               }}
             >
-              Try it free
+              Get Started
             </button>
           </div>
         ))}
@@ -83,7 +111,7 @@ function PricingSection() {
     </div>
   );
 }
-
+ 
 const light = {
   textPrimary: "#1a2a6c",
   textSecondary: "#555",
@@ -93,7 +121,7 @@ const light = {
   accent: "#1a2a6c",
   btnBg: "#f0f2f7",
 };
-
+ 
 const dark = {
   textPrimary: "#e2e8f0",
   textSecondary: "#94a3b8",
@@ -103,7 +131,7 @@ const dark = {
   accent: "#7c9fff",
   btnBg: "#334155",
 };
-
+ 
 const styles = {
   wrapper: {
     padding: "40px 0",
@@ -165,9 +193,17 @@ const styles = {
     margin: "0 0 24px 0",
   },
   feature: {
-    padding: "8px 0",
+    padding: "6px 0",
     fontSize: "14px",
     lineHeight: "1.5",
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "8px",
+  },
+  checkmark: {
+    fontWeight: "700",
+    fontSize: "16px",
+    flexShrink: 0,
   },
   btn: {
     width: "100%",
@@ -179,5 +215,5 @@ const styles = {
     cursor: "pointer",
   },
 };
-
+ 
 export default PricingSection;

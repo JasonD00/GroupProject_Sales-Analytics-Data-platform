@@ -26,6 +26,8 @@ function Dashboard() {
 
   const t = isDark ? dark : light;
 
+  console.log("Dashboard render - showLoginModel:", showLoginModel); // Debug log
+
   return (
     <div style={{ ...styles.shell, background: t.pageBg }}>
       <Sidebar
@@ -44,6 +46,8 @@ function Dashboard() {
           {activeNav === "transactions" && <Transactions />}
         </div>
       </main>
+
+      {showLoginModel && <LoginModel />}
     </div>
   );
 }
