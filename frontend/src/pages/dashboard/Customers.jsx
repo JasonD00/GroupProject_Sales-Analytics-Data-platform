@@ -1,9 +1,63 @@
 import { useTheme } from "../../context/ThemeContext";
+import {useState, useEffect} from "react";
 
 function Customers() {
   const { isDark } = useTheme();
   const t = isDark ? dark : light;
-  const customers = [];
+
+  // List of customers fetched from the api, empty till fetched
+  const [customers, setCustomers] = useState([]);
+  // this is true while Loading and shows this in the table
+  const [loading,setLoading] = useState(true)
+  // if fetch fails store the message
+  const [error,setError] = useState(null);
+
+  // useEffect runs once the component first loads
+  useEffect(() => {
+    // Call the SpringBoot endpoint at: http://localhost:8080/api/clients
+    fetch("http://localhost:8080/api/clients")
+        //check the response, OK = (200) otherwise throw error
+        .then((res) => {
+          if (!res.ok) throw new Error("Customer fetch erorr");
+          return res.json(); // return the response from JSON to JS array
+        })
+        .then((data) => {
+
+          // Use api data for our tables
+          // data = array from ClientResponse from SpringBoot backend
+          // each is mapped to c to show the fields needed
+
+          /*
+              clientKey;
+              clientId;
+              clientNumber;
+              firstName;
+              lastName;
+              maritalStatus;
+              gender;
+              country;
+              birthDate;
+              accountStatus;
+              clientSegment;
+              createDate;
+           */
+
+          const mapped = data.map((c) => ({
+            id:         c.clientId,
+            name:       `${c.firstName} ${c.lastName}`,
+            region:     c.country,
+            status:     c.accountStatus,
+            segment:    c.clientSegment,
+            birthday:   c.birthDate,
+          }));
+          setCustomers(mapped);
+        })
+        .catch((err) => setError(err.message))
+        .finally(() => setLoading(false));
+  },
+      []); // [] only run whole thing once not on re render
+
+
 
   return (
     <div style={styles.wrapper}>
@@ -31,9 +85,9 @@ function Customers() {
                 <tr key={c.id} style={{ borderBottom: `1px solid ${t.border}` }}>
                   <td style={{ ...styles.td, color: t.textPrimary }}>{c.id}</td>
                   <td style={{ ...styles.td, color: t.textPrimary }}>{c.name}</td>
-                  <td style={{ ...styles.td, color: t.textPrimary }}>{c.email}</td>
                   <td style={{ ...styles.td, color: t.textPrimary }}>{c.region}</td>
-                  <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "600" }}>${c.totalSpend.toLocaleString()}</td>
+                  <td style={{ ...styles.td, color: t.textPrimary }}>{c.segment}</td>
+                  <td style={{ ...styles.td, color: t.textPrimary }}>{c.birthday}</td>
                   <td style={styles.td}>
                     <span style={{ ...styles.badge, background: c.status === "Active" ? "#dcfce7" : "#fee2e2", color: c.status === "Active" ? "#16a34a" : "#dc2626" }}>
                       {c.status}
