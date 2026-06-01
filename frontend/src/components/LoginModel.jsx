@@ -11,7 +11,7 @@ function LoginModel() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  console.log("LoginModel rendered"); // Debug log
+  console.log("LoginModel rendered"); 
 
   const handleSubmit = (e) => {
     e.preventDefault();
