@@ -17,29 +17,38 @@ package com.salesplatform.sales_analytics_api.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "sales")
+@Table(name = "crm_sales_info", schema = "bronze")
 public class Sales {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
-
+    @Column(name = "sales_ord_num")
     private String orderNumber;
+
+    @Column(name = "sales_prd_key")
     private String productKey;
-    private int clientId;
 
-    private String orderDate;
-    private String shipDate;
-    private String dueDate;
+    @Column(name = "sales_client_id")
+    private Integer clientId;
 
-    private int salesAmount;
-    private int quantity;
-    private int price;
+    @Column(name = "sales_order_dt")
+    private Integer orderDate;
 
-    public Sales() {}
+    @Column(name = "sales_ship_dt")
+    private Integer shipDate;
 
-    public int getId() {
-        return id;
+    @Column(name = "sales_due_dt")
+    private Integer dueDate;
+
+    @Column(name = "sales_sales")
+    private Integer salesAmount;
+
+    @Column(name = "sales_quantity")
+    private Integer quantity;
+
+    @Column(name = "sales_price")
+    private Integer price;
+
+    public Sales() {
     }
 
     public String getOrderNumber() {
@@ -58,59 +67,59 @@ public class Sales {
         this.productKey = productKey;
     }
 
-    public int getClientId() {
+    public Integer getClientId() {
         return clientId;
     }
 
-    public void setClientId(int clientId) {
+    public void setClientId(Integer clientId) {
         this.clientId = clientId;
     }
 
-    public String getOrderDate() {
+    public Integer getOrderDate() {
         return orderDate;
     }
 
-    public void setOrderDate(String orderDate) {
+    public void setOrderDate(Integer orderDate) {
         this.orderDate = orderDate;
     }
 
-    public String getShipDate() {
+    public Integer getShipDate() {
         return shipDate;
     }
 
-    public void setShipDate(String shipDate) {
+    public void setShipDate(Integer shipDate) {
         this.shipDate = shipDate;
     }
 
-    public String getDueDate() {
+    public Integer getDueDate() {
         return dueDate;
     }
 
-    public void setDueDate(String dueDate) {
+    public void setDueDate(Integer dueDate) {
         this.dueDate = dueDate;
     }
 
-    public int getSalesAmount() {
+    public Integer getSalesAmount() {
         return salesAmount;
     }
 
-    public void setSalesAmount(int salesAmount) {
+    public void setSalesAmount(Integer salesAmount) {
         this.salesAmount = salesAmount;
     }
 
-    public int getQuantity() {
+    public Integer getQuantity() {
         return quantity;
     }
 
-    public void setQuantity(int quantity) {
+    public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
 
-    public int getPrice() {
+    public Integer getPrice() {
         return price;
     }
 
-    public void setPrice(int price) {
+    public void setPrice(Integer price) {
         this.price = price;
     }
 }
