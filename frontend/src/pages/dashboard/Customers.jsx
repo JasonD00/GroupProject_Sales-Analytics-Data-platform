@@ -1,131 +1,395 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
-import {useState, useEffect} from "react";
 
 function Customers() {
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   const t = isDark ? dark : light;
 
-  // List of customers fetched from the api, empty till fetched
+  // Backend API data
   const [customers, setCustomers] = useState([]);
-  // this is true while Loading and shows this in the table
-  const [loading,setLoading] = useState(true)
-  // if fetch fails store the message
-  const [error,setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // useEffect runs once the component first loads
+  // Frontend filters
+  const [regionFilter, setRegionFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("spend");
+
+  // Fetch from backend API
   useEffect(() => {
-    // Call the SpringBoot endpoint at: http://localhost:8080/api/clients
     fetch("http://localhost:8080/api/clients")
-        //check the response, OK = (200) otherwise throw error
-        .then((res) => {
-          if (!res.ok) throw new Error("Customer fetch erorr");
-          return res.json(); // return the response from JSON to JS array
-        })
-        .then((data) => {
+      .then((res) => {
+        if (!res.ok) throw new Error("Customer fetch error");
+        return res.json();
+      })
+      .then((data) => {
+        // Map backend API response to frontend format
+        const mapped = data.map((c) => ({
+          id: c.clientId,
+          name: `${c.firstName} ${c.lastName}`,
+          email: c.email || "N/A", // Backend may not have email, use N/A if missing
+          region: c.country,
+          totalSpend: c.totalSpend || 0,
+          orders: c.orders || 0,
+          lastOrder: c.createDate || "N/A",
+          status: c.accountStatus,
+          segment: c.clientSegment,
+          birthday: c.birthDate,
+        }));
+        setCustomers(mapped);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
-          // Use api data for our tables
-          // data = array from ClientResponse from SpringBoot backend
-          // each is mapped to c to show the fields needed
+  // Apply filters
+  let filteredCustomers = customers.filter((customer) => {
+    const matchesRegion = regionFilter === "all" || customer.region === regionFilter;
+    const matchesStatus = statusFilter === "all" || customer.status === statusFilter;
+    const matchesSearch = 
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.id.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesRegion && matchesStatus && matchesSearch;
+  });
 
-          /*
-              clientKey;
-              clientId;
-              clientNumber;
-              firstName;
-              lastName;
-              maritalStatus;
-              gender;
-              country;
-              birthDate;
-              accountStatus;
-              clientSegment;
-              createDate;
-           */
-
-          const mapped = data.map((c) => ({
-            id:         c.clientId,
-            name:       `${c.firstName} ${c.lastName}`,
-            region:     c.country,
-            status:     c.accountStatus,
-            segment:    c.clientSegment,
-            birthday:   c.birthDate,
-          }));
-          setCustomers(mapped);
-        })
-        .catch((err) => setError(err.message))
-        .finally(() => setLoading(false));
-  },
-      []); // [] only run whole thing once not on re render
-
-
+  // Sort
+  if (sortBy === "spend") {
+    filteredCustomers.sort((a, b) => b.totalSpend - a.totalSpend);
+  } else if (sortBy === "name") {
+    filteredCustomers.sort((a, b) => a.name.localeCompare(b.name));
+  }
 
   return (
     <div style={styles.wrapper}>
-      <div style={styles.header}>
-        <h2 style={{ ...styles.title, color: t.textPrimary }}>Customers</h2>
-        <button style={{ ...styles.addBtn, background: t.btnBg, color: t.btnText }}>+ Add Customer</button>
+      
+      <div style={styles.summaryGrid}>
+        <div style={{ ...styles.summaryCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+          <div style={{ ...styles.summaryIcon, background: t.accentLight }}>👥</div>
+          <div>
+            <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>Total Customers</div>
+            <div style={{ ...styles.summaryValue, color: t.textPrimary }}>{customers.length}</div>
+          </div>
+        </div>
+
+        <div style={{ ...styles.summaryCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+          <div style={{ ...styles.summaryIcon, background: t.successLight }}>✓</div>
+          <div>
+            <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>Active</div>
+            <div style={{ ...styles.summaryValue, color: t.textPrimary }}>
+              {customers.filter(c => c.status === "Active").length}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ ...styles.summaryCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+          <div style={{ ...styles.summaryIcon, background: t.warningLight }}>⏸</div>
+          <div>
+            <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>Inactive</div>
+            <div style={{ ...styles.summaryValue, color: t.textPrimary }}>
+              {customers.filter(c => c.status === "Inactive").length}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ ...styles.summaryCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+          <div style={{ ...styles.summaryIcon, background: t.accentLight }}>💰</div>
+          <div>
+            <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>Avg Lifetime Value</div>
+            <div style={{ ...styles.summaryValue, color: t.textPrimary }}>
+              €{customers.length > 0 ? Math.round(customers.reduce((sum, c) => sum + c.totalSpend, 0) / customers.length).toLocaleString() : "0"}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div style={{ ...styles.tableCard, background: t.cardBg }}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              {["ID", "Name", "Email", "Region", "Total Spend", "Status"].map((h) => (
-                <th key={h} style={{ ...styles.th, background: t.theadBg, color: t.textSecondary }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {customers.length === 0 ? (
-              <tr>
-                <td colSpan={6} style={{ ...styles.emptyCell, color: t.textMuted }}>No customers found.</td>
-              </tr>
-            ) : (
-              customers.map((c) => (
-                <tr key={c.id} style={{ borderBottom: `1px solid ${t.border}` }}>
-                  <td style={{ ...styles.td, color: t.textPrimary }}>{c.id}</td>
-                  <td style={{ ...styles.td, color: t.textPrimary }}>{c.name}</td>
-                  <td style={{ ...styles.td, color: t.textPrimary }}>{c.region}</td>
-                  <td style={{ ...styles.td, color: t.textPrimary }}>{c.segment}</td>
-                  <td style={{ ...styles.td, color: t.textPrimary }}>{c.birthday}</td>
-                  <td style={styles.td}>
-                    <span style={{ ...styles.badge, background: c.status === "Active" ? "#dcfce7" : "#fee2e2", color: c.status === "Active" ? "#16a34a" : "#dc2626" }}>
-                      {c.status}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div style={{ ...styles.filterBar, background: t.cardBg, border: `1px solid ${t.border}` }}>
+        <input
+          type="text"
+          placeholder="Search customers..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            ...styles.searchInput,
+            background: t.inputBg,
+            border: `1px solid ${t.border}`,
+            color: t.textPrimary,
+          }}
+        />
+
+        <select
+          value={regionFilter}
+          onChange={(e) => setRegionFilter(e.target.value)}
+          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
+        >
+          <option value="all">All Regions</option>
+          <option value="North America">North America</option>
+          <option value="Europe">Europe</option>
+          <option value="Asia">Asia</option>
+          <option value="South America">South America</option>
+        </select>
+
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
+        >
+          <option value="all">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
+        >
+          <option value="spend">Sort by Spend</option>
+          <option value="name">Sort by Name</option>
+        </select>
       </div>
+
+      <div style={{ ...styles.tableCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+        <div style={styles.tableHeader}>
+          <h3 style={{ ...styles.tableTitle, color: t.textPrimary }}>
+            Customer Directory ({filteredCustomers.length})
+          </h3>
+          <button style={styles.addBtn}>+ Add Customer</button>
+        </div>
+        
+        <div style={styles.tableWrapper}>
+          {loading ? (
+            <div style={{ ...styles.loadingMessage, color: t.textSecondary }}>
+              Loading customers...
+            </div>
+          ) : error ? (
+            <div style={{ ...styles.errorMessage, color: "#dc2626" }}>
+              Error: {error}
+            </div>
+          ) : (
+            <table style={styles.table}>
+              <thead>
+                <tr style={{ borderBottom: `2px solid ${t.border}` }}>
+                  <th style={{ ...styles.th, color: t.textPrimary }}>Customer ID</th>
+                  <th style={{ ...styles.th, color: t.textPrimary }}>Name</th>
+                  <th style={{ ...styles.th, color: t.textPrimary }}>Email</th>
+                  <th style={{ ...styles.th, color: t.textPrimary }}>Region</th>
+                  <th style={{ ...styles.th, color: t.textPrimary }}>Total Spend</th>
+                  <th style={{ ...styles.th, color: t.textPrimary }}>Orders</th>
+                  <th style={{ ...styles.th, color: t.textPrimary }}>Avg Order</th>
+                  <th style={{ ...styles.th, color: t.textPrimary }}>Last Order</th>
+                  <th style={{ ...styles.th, color: t.textPrimary }}>Status</th>
+                  <th style={{ ...styles.th, color: t.textPrimary }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCustomers.map((customer) => (
+                  <tr key={customer.id} style={{ borderBottom: `1px solid ${t.borderLight}` }}>
+                    <td style={{ ...styles.td, color: t.textSecondary, fontFamily: "monospace" }}>
+                      {customer.id}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "500" }}>
+                      {customer.name}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textSecondary, fontSize: "12px" }}>
+                      {customer.email}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{customer.region}</td>
+                    <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "600" }}>
+                      €{customer.totalSpend.toLocaleString()}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{customer.orders}</td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>
+                      €{customer.orders > 0 ? Math.round(customer.totalSpend / customer.orders).toLocaleString() : "0"}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{customer.lastOrder}</td>
+                    <td style={{ ...styles.td }}>
+                      <span
+                        style={{
+                          ...styles.statusBadge,
+                          background: customer.status === "Active" ? t.success : t.warning,
+                          color: "#fff",
+                        }}
+                      >
+                        {customer.status}
+                      </span>
+                    </td>
+                    <td style={{ ...styles.td }}>
+                      <button
+                        onClick={() => navigate(`/customers/${customer.id}`)}
+                        style={{ ...styles.actionBtn, color: t.accent }}
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }
 
 const light = {
-  textPrimary: "#1a2a6c", textSecondary: "#555", textMuted: "#aaa",
-  cardBg: "#ffffff", theadBg: "#f8f9fc", border: "#f0f2f7",
-  btnBg: "#1a2a6c", btnText: "#fff",
+  textPrimary: "#1a2a6c",
+  textSecondary: "#555",
+  cardBg: "#ffffff",
+  border: "#e0e4ef",
+  borderLight: "#f0f2f7",
+  inputBg: "#ffffff",
+  accent: "#1a2a6c",
+  success: "#16a34a",
+  warning: "#f59e0b",
+  accentLight: "#e0e7ff",
+  successLight: "#dcfce7",
+  warningLight: "#fef3c7",
 };
 
 const dark = {
-  textPrimary: "#e2e8f0", textSecondary: "#94a3b8", textMuted: "#64748b",
-  cardBg: "#1e293b", theadBg: "#0f172a", border: "#334155",
-  btnBg: "#7c9fff", btnText: "#0f172a",
+  textPrimary: "#e2e8f0",
+  textSecondary: "#94a3b8",
+  cardBg: "#1e293b",
+  border: "#334155",
+  borderLight: "#334155",
+  inputBg: "#0f172a",
+  accent: "#7c9fff",
+  success: "#22c55e",
+  warning: "#fbbf24",
+  accentLight: "#1e3a8a",
+  successLight: "#065f46",
+  warningLight: "#78350f",
 };
 
 const styles = {
-  wrapper:   { display: "flex", flexDirection: "column", gap: "20px" },
-  header:    { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  title:     { margin: 0, fontSize: "18px", fontWeight: "700" },
-  addBtn:    { padding: "9px 18px", borderRadius: "6px", border: "none", fontWeight: "600", cursor: "pointer", fontSize: "14px" },
-  tableCard: { borderRadius: "10px", boxShadow: "0 1px 4px rgba(0,0,0,0.07)", overflow: "hidden" },
-  table:     { width: "100%", borderCollapse: "collapse", fontSize: "14px" },
-  th:        { textAlign: "left", padding: "10px 20px", fontWeight: "600", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.4px" },
-  td:        { padding: "12px 20px" },
-  emptyCell: { padding: "40px", textAlign: "center", fontSize: "14px" },
-  badge:     { padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "600" },
+  wrapper: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "24px",
+  },
+  summaryGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "16px",
+  },
+  summaryCard: {
+    padding: "20px",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+  },
+  summaryIcon: {
+    width: "48px",
+    height: "48px",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "24px",
+  },
+  summaryLabel: {
+    fontSize: "12px",
+    marginBottom: "4px",
+  },
+  summaryValue: {
+    fontSize: "24px",
+    fontWeight: "700",
+  },
+  filterBar: {
+    padding: "20px",
+    borderRadius: "10px",
+    display: "flex",
+    gap: "12px",
+    flexWrap: "wrap",
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: "200px",
+    padding: "8px 14px",
+    borderRadius: "6px",
+    fontSize: "13px",
+    outline: "none",
+  },
+  select: {
+    padding: "8px 14px",
+    borderRadius: "6px",
+    fontSize: "13px",
+    cursor: "pointer",
+    outline: "none",
+  },
+  tableCard: {
+    padding: "24px",
+    borderRadius: "10px",
+  },
+  tableHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "20px",
+  },
+  tableTitle: {
+    margin: 0,
+    fontSize: "16px",
+    fontWeight: "700",
+  },
+  addBtn: {
+    padding: "8px 16px",
+    background: "#1a2a6c",
+    color: "#fff",
+    border: "none",
+    borderRadius: "6px",
+    fontSize: "13px",
+    fontWeight: "600",
+    cursor: "pointer",
+  },
+  loadingMessage: {
+    padding: "40px",
+    textAlign: "center",
+    fontSize: "14px",
+  },
+  errorMessage: {
+    padding: "40px",
+    textAlign: "center",
+    fontSize: "14px",
+  },
+  tableWrapper: {
+    overflowX: "auto",
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+  },
+  th: {
+    padding: "12px 16px",
+    textAlign: "left",
+    fontSize: "13px",
+    fontWeight: "600",
+  },
+  td: {
+    padding: "12px 16px",
+    fontSize: "13px",
+  },
+  statusBadge: {
+    padding: "4px 10px",
+    borderRadius: "12px",
+    fontSize: "11px",
+    fontWeight: "600",
+  },
+  actionBtn: {
+    background: "transparent",
+    border: "none",
+    fontSize: "13px",
+    fontWeight: "500",
+    cursor: "pointer",
+    textDecoration: "underline",
+  },
 };
 
 export default Customers;

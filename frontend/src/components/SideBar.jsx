@@ -1,138 +1,217 @@
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
 
-const ALL_NAV_ITEMS = [
-  { id: "overview",     label: "Overview",     roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
-  { id: "sales",        label: "Sales",        roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
-  { id: "products",     label: "Products",     roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
-  { id: "invoices",     label: "Invoices",     roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
-  { id: "customers",    label: "Customers",    roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
-  { id: "transactions", label: "Transactions", roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
+const NAV_ITEMS = [
+  {
+    id: "overview",
+    label: "Overview",
+    roles: ["ADMIN", "ANALYST", "SALES_MANAGER", "SALES_REP"], 
+  },
+  {
+    id: "sales",
+    label: "Sales",
+    roles: ["ADMIN", "ANALYST", "SALES_MANAGER"], 
+  },
+  {
+    id: "products",
+    label: "Products",
+    roles: ["ADMIN", "SALES_MANAGER"], 
+  },
+  {
+    id: "customers",
+    label: "Customers",
+    roles: ["ADMIN", "SALES_MANAGER", "SALES_REP"], 
+  },
+  {
+    id: "transactions",
+    label: "Transactions",
+    roles: ["ADMIN", "ANALYST", "SALES_MANAGER"], 
+  },
+  {
+    id: "invoices",
+    label: "Invoices",
+    roles: ["ADMIN", "SALES_MANAGER"],
+  },
+];
+
+const FEATURE_ITEMS = [
+  {
+    id: "reports",
+    label: "Reports",
+    roles: ["ADMIN", "ANALYST", "SALES_MANAGER"],
+  },
+  {
+    id: "export",
+    label: "Data Export",
+    roles: ["ADMIN", "ANALYST", "SALES_MANAGER"],
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    roles: ["ADMIN", "ANALYST", "SALES_MANAGER", "SALES_REP"],
+  },
 ];
 
 function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { isDark } = useTheme();
+  const t = isDark ? dark : light;
 
-  const visibleItems = user 
-  ? ALL_NAV_ITEMS.filter((item) => item.roles.includes(user.role))
-  : ALL_NAV_ITEMS;
+  const visibleNavItems = NAV_ITEMS.filter((item) => {
+    if (!user) return item.id === "overview";
+    return item.roles.includes(user.role);
+  });
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
+  const visibleFeatureItems = FEATURE_ITEMS.filter((item) => {
+    if (!user) return false;
+    return item.roles.includes(user.role);
+  });
 
   return (
-    <aside style={{ ...styles.sidebar, width: sidebarOpen ? "220px" : "60px" }}>
-      <div style={styles.sidebarTop}>
-        {sidebarOpen && <span style={styles.logoText}>Sales Analytics</span>}
-        <button style={styles.toggleBtn} onClick={() => setSidebarOpen(!sidebarOpen)}>
+    <div
+      style={{
+        ...styles.sidebar,
+        width: sidebarOpen ? "220px" : "60px",
+        background: t.bg,
+        borderRight: `1px solid ${t.border}`,
+      }}
+    >
+      <div style={styles.toggleContainer}>
+        <button
+          style={{ ...styles.toggleBtn, color: t.text }}
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+        >
           {sidebarOpen ? "◀" : "▶"}
         </button>
       </div>
 
       <nav style={styles.nav}>
-        {visibleItems.map((item) => (
+        {/* Main Navigation */}
+        {visibleNavItems.map((item) => (
           <button
             key={item.id}
+            onClick={() => setActiveNav(item.id)}
             style={{
               ...styles.navItem,
-              ...(activeNav === item.id ? styles.navItemActive : {}),
+              background: activeNav === item.id ? t.activeBg : "transparent",
+              color: activeNav === item.id ? t.activeText : t.text,
             }}
-            onClick={() => setActiveNav(item.id)}
           >
-            {sidebarOpen && <span>{item.label}</span>}
-            {!sidebarOpen && <span style={styles.navInitial}>{item.label[0]}</span>}
+            <span style={styles.icon}>{item.icon}</span>
+            {sidebarOpen && <span style={styles.label}>{item.label}</span>}
+          </button>
+        ))}
+
+        {visibleFeatureItems.length > 0 && (
+          <div style={{ ...styles.divider, borderColor: t.border, display: sidebarOpen ? "block" : "none" }} />
+        )}
+
+        {visibleFeatureItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setActiveNav(item.id)}
+            style={{
+              ...styles.navItem,
+              background: activeNav === item.id ? t.activeBg : "transparent",
+              color: activeNav === item.id ? t.activeText : t.text,
+              fontSize: sidebarOpen ? "13px" : "13px",
+            }}
+          >
+            <span style={styles.icon}>{item.icon}</span>
+            {sidebarOpen && <span style={styles.label}>{item.label}</span>}
           </button>
         ))}
       </nav>
-    </aside>
+
+      {/* User Role Badge at bottom */}
+      {user && sidebarOpen && (
+        <div style={{ ...styles.roleBadge, background: t.badgeBg, color: t.badgeText }}>
+          {user.role}
+        </div>
+      )}
+    </div>
   );
 }
 
+const light = {
+  bg: "#ffffff",
+  border: "#e0e4ef",
+  text: "#555",
+  activeBg: "#1a2a6c",
+  activeText: "#fff",
+  badgeBg: "#f0f2f7",
+  badgeText: "#1a2a6c",
+};
+
+const dark = {
+  bg: "#1e293b",
+  border: "#334155",
+  text: "#94a3b8",
+  activeBg: "#7c9fff",
+  activeText: "#0f172a",
+  badgeBg: "#334155",
+  badgeText: "#e2e8f0",
+};
+
 const styles = {
   sidebar: {
-    background: "#1a2a6c",
-    color: "#fff",
     display: "flex",
     flexDirection: "column",
-    flexShrink: 0,
-    transition: "width 0.25s ease",
+    transition: "width 0.3s",
     overflow: "hidden",
   },
-  sidebarTop: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "20px 14px 16px",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
-  },
-  logoText: {
-    fontSize: "16px",
-    fontWeight: "700",
-    letterSpacing: "0.5px",
-    whiteSpace: "nowrap",
+  toggleContainer: {
+    padding: "16px",
+    borderBottom: "1px solid rgba(0,0,0,0.1)",
   },
   toggleBtn: {
     background: "transparent",
     border: "none",
-    color: "#fff",
+    fontSize: "18px",
     cursor: "pointer",
-    fontSize: "14px",
-    padding: "4px 6px",
-    borderRadius: "4px",
-    flexShrink: 0,
+    padding: "4px",
   },
   nav: {
     flex: 1,
+    padding: "16px 0",
     display: "flex",
     flexDirection: "column",
-    padding: "12px 0",
-    gap: "2px",
+    gap: "4px",
+    overflowY: "auto",
   },
   navItem: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "flex-start",
-    gap: "10px",
-    padding: "10px 14px",
-    background: "transparent",
+    gap: "12px",
+    padding: "12px 16px",
     border: "none",
-    color: "rgba(255,255,255,0.75)",
+    fontSize: "14px",
+    fontWeight: "500",
     cursor: "pointer",
     textAlign: "left",
-    fontSize: "14px",
+    transition: "background 0.2s",
+    borderRadius: "0",
+  },
+  icon: {
+    fontSize: "18px",
+    minWidth: "20px",
+  },
+  label: {
     whiteSpace: "nowrap",
-    width: "100%",
   },
-  navItemActive: {
-    background: "rgba(255,255,255,0.15)",
-    color: "#fff",
-    borderLeft: "3px solid #7c9fff",
+  divider: {
+    height: "1px",
+    margin: "8px 0",
+    borderTop: "1px solid",
   },
-  navInitial: {
-    width: "100%",
-    textAlign: "center",
+  roleBadge: {
+    margin: "16px",
+    padding: "8px 12px",
+    borderRadius: "6px",
+    fontSize: "11px",
     fontWeight: "700",
-  },
-  sidebarBottom: {
-    padding: "14px 0",
-    borderTop: "1px solid rgba(255,255,255,0.1)",
-  },
-  logoutBtn: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "10px",
-    padding: "10px 14px",
-    background: "transparent",
-    border: "none",
-    color: "rgba(255,255,255,0.65)",
-    cursor: "pointer",
-    fontSize: "14px",
-    width: "100%",
-    whiteSpace: "nowrap",
+    textAlign: "center",
+    textTransform: "uppercase",
   },
 };
 
