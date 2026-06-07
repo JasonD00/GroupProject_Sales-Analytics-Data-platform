@@ -34,14 +34,36 @@ const NAV_ITEMS = [
   },
 ];
 
+const FEATURE_ITEMS = [
+  {
+    id: "reports",
+    label: "Reports",
+    roles: ["ADMIN", "ANALYST", "SALES_MANAGER"],
+  },
+  {
+    id: "export",
+    label: "Data Export",
+    roles: ["ADMIN", "ANALYST", "SALES_MANAGER"],
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    roles: ["ADMIN", "ANALYST", "SALES_MANAGER", "SALES_REP"],
+  },
+];
+
 function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
   const { user } = useAuth();
   const { isDark } = useTheme();
   const t = isDark ? dark : light;
 
-  // Filter nav items based on user role
   const visibleNavItems = NAV_ITEMS.filter((item) => {
-    if (!user) return item.id === "overview"; // Only show overview if not logged in
+    if (!user) return item.id === "overview";
+    return item.roles.includes(user.role);
+  });
+
+  const visibleFeatureItems = FEATURE_ITEMS.filter((item) => {
+    if (!user) return false;
     return item.roles.includes(user.role);
   });
 
@@ -54,7 +76,6 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
         borderRight: `1px solid ${t.border}`,
       }}
     >
-      {/* Toggle Button */}
       <div style={styles.toggleContainer}>
         <button
           style={{ ...styles.toggleBtn, color: t.text }}
@@ -64,8 +85,8 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
         </button>
       </div>
 
-      {/* Navigation Items */}
       <nav style={styles.nav}>
+        {/* Main Navigation */}
         {visibleNavItems.map((item) => (
           <button
             key={item.id}
@@ -74,6 +95,26 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
               ...styles.navItem,
               background: activeNav === item.id ? t.activeBg : "transparent",
               color: activeNav === item.id ? t.activeText : t.text,
+            }}
+          >
+            <span style={styles.icon}>{item.icon}</span>
+            {sidebarOpen && <span style={styles.label}>{item.label}</span>}
+          </button>
+        ))}
+
+        {visibleFeatureItems.length > 0 && (
+          <div style={{ ...styles.divider, borderColor: t.border, display: sidebarOpen ? "block" : "none" }} />
+        )}
+
+        {visibleFeatureItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setActiveNav(item.id)}
+            style={{
+              ...styles.navItem,
+              background: activeNav === item.id ? t.activeBg : "transparent",
+              color: activeNav === item.id ? t.activeText : t.text,
+              fontSize: sidebarOpen ? "13px" : "13px",
             }}
           >
             <span style={styles.icon}>{item.icon}</span>
@@ -136,6 +177,7 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "4px",
+    overflowY: "auto",
   },
   navItem: {
     display: "flex",
@@ -156,6 +198,11 @@ const styles = {
   },
   label: {
     whiteSpace: "nowrap",
+  },
+  divider: {
+    height: "1px",
+    margin: "8px 0",
+    borderTop: "1px solid",
   },
   roleBadge: {
     margin: "16px",

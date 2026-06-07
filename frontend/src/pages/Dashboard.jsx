@@ -9,6 +9,9 @@ import Sales from "./dashboard/Sales";
 import Products from "./dashboard/Products";
 import Customers from "./dashboard/Customers";
 import Transactions from "./dashboard/Transactions";
+//import Reports from "./dashboard/Reports";
+import DataExport from "./dashboard/DataExport";
+import Settings from "./dashboard/Settings";
 
 const pageTitles = {
   overview:     "Overview",
@@ -16,6 +19,9 @@ const pageTitles = {
   products:     "Products",
   customers:    "Customers",
   transactions: "Transactions",
+  reports:      "Performance Reports",
+  export:       "Data Export",
+  settings:     "Settings",
 };
 
 function Dashboard() {
@@ -26,7 +32,7 @@ function Dashboard() {
 
   const t = isDark ? dark : light;
 
-  console.log("Dashboard render - showLoginModel:", showLoginModel); // Debug log
+  console.log("Dashboard render - showLoginModel:", showLoginModel);
 
   return (
     <div style={{ ...styles.shell, background: t.pageBg }}>
@@ -44,6 +50,10 @@ function Dashboard() {
           {activeNav === "products"     && <Products />}
           {activeNav === "customers"    && <Customers />}
           {activeNav === "transactions" && <Transactions />}
+
+          {activeNav === "reports"      && <Reports />}
+          {activeNav === "export"       && <DataExport />}
+          {activeNav === "settings"     && <Settings />}
         </div>
       </main>
 

@@ -9,7 +9,6 @@ function AboutUs() {
   return (
     <div style={styles.container}>
       
-      {/* TOP NAVIGATION */}
       <nav style={{ ...styles.topNav, background: t.cardBg, borderBottom: `1px solid ${t.border}` }}>
         <div style={styles.navContent}>
           <h1 style={{ ...styles.logo, color: t.textPrimary }}>Sales Analytics</h1>
@@ -32,7 +31,6 @@ function AboutUs() {
 
       <div style={{ ...styles.pageWrapper, background: t.pageBg }}>
         
-        {/* HERO SECTION */}
         <section style={styles.heroSection}>
           <div style={styles.heroContent}>
             <h2 style={{ ...styles.heroTitle, color: t.textPrimary }}>
@@ -53,7 +51,6 @@ function AboutUs() {
           </div>
         </section>
 
-        {/* PROBLEMS SECTION */}
         <section style={{ ...styles.section, background: t.cardBg }}>
           <div style={styles.sectionInner}>
             <h2 style={{ ...styles.sectionTitle, color: t.textPrimary }}>
@@ -78,7 +75,6 @@ function AboutUs() {
           </div>
         </section>
 
-        {/* SOLUTION SECTION */}
         <section style={styles.section}>
           <div style={styles.sectionInner}>
             <h2 style={{ ...styles.sectionTitle, color: t.textPrimary }}>
@@ -103,110 +99,7 @@ function AboutUs() {
           </div>
         </section>
 
-        {/* FEATURES SECTION */}
         <section style={{ ...styles.section, background: t.cardBg }}>
-          <div style={styles.sectionInner}>
-            <h2 style={{ ...styles.sectionTitle, color: t.textPrimary }}>
-              Key Features
-            </h2>
-            <p style={{ ...styles.sectionSubtitle, color: t.textSecondary }}>
-              Everything you need to succeed with your sales analytics.
-            </p>
-            
-            <div style={styles.featuresGrid}>
-              {FEATURES.map((feature, idx) => (
-                <div key={idx} style={{ ...styles.featureCard, background: t.pageBg, border: `1px solid ${t.border}` }}>
-                  <h3 style={{ ...styles.featureTitle, color: t.textPrimary }}>
-                    {feature.title}
-                  </h3>
-                  <p style={{ ...styles.featureDescription, color: t.textSecondary }}>
-                    {feature.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* HOW IT WORKS SECTION */}
-        <section style={styles.section}>
-          <div style={styles.sectionInner}>
-            <h2 style={{ ...styles.sectionTitle, color: t.textPrimary }}>
-              Get Started In Minutes
-            </h2>
-            <p style={{ ...styles.sectionSubtitle, color: t.textSecondary }}>
-              Simple setup process, powerful results.
-            </p>
-            
-            <div style={styles.stepsContainer}>
-              {STEPS.map((step, idx) => (
-                <div key={idx} style={styles.stepItem}>
-                  <div style={{ ...styles.stepNumber, background: t.accent, color: "#fff" }}>
-                    {idx + 1}
-                  </div>
-                  <div>
-                    <h4 style={{ ...styles.stepTitle, color: t.textPrimary }}>
-                      {step.title}
-                    </h4>
-                    <p style={{ ...styles.stepDescription, color: t.textSecondary }}>
-                      {step.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* PERSONAS SECTION */}
-        <section style={{ ...styles.section, background: t.cardBg }}>
-          <div style={styles.sectionInner}>
-            <h2 style={{ ...styles.sectionTitle, color: t.textPrimary }}>
-              Built For Every Role
-            </h2>
-            <p style={{ ...styles.sectionSubtitle, color: t.textSecondary }}>
-              Tailored views and features for different team members.
-            </p>
-            
-            <div style={styles.personasGrid}>
-              {PERSONAS.map((persona, idx) => (
-                <div key={idx} style={{ ...styles.personaCard, background: t.pageBg, border: `1px solid ${t.border}` }}>
-                  <h3 style={{ ...styles.personaTitle, color: t.textPrimary }}>
-                    {persona.title}
-                  </h3>
-                  <p style={{ ...styles.personaText, color: t.textSecondary }}>
-                    {persona.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* STATS SECTION */}
-        <section style={{ ...styles.section, background: t.accent }}>
-          <div style={styles.sectionInner}>
-            <h2 style={{ ...styles.sectionTitle, color: "#fff" }}>
-              Trusted By Companies Worldwide
-            </h2>
-            
-            <div style={styles.statsGrid}>
-              {STATS.map((stat, idx) => (
-                <div key={idx} style={styles.statItem}>
-                  <div style={{ ...styles.statNumber, color: "#fff" }}>
-                    {stat.number}
-                  </div>
-                  <div style={{ color: "rgba(255,255,255,0.9)" }}>
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* PRICING SECTION */}
-        <section style={styles.section}>
           <div style={styles.sectionInner}>
             <h2 style={{ ...styles.sectionTitle, color: t.textPrimary }}>
               Simple, Transparent Pricing
@@ -221,7 +114,7 @@ function AboutUs() {
                   key={idx} 
                   style={{ 
                     ...styles.pricingCard, 
-                    background: plan.highlighted ? t.accent : t.cardBg,
+                    background: plan.highlighted ? t.accent : t.pageBg,
                     border: plan.highlighted ? "none" : `1px solid ${t.border}`,
                   }}
                 >
@@ -260,13 +153,31 @@ function AboutUs() {
                   >
                     Get Started
                   </button>
+
+                  <ul style={styles.pricingFeatures}>
+                    {plan.features.map((feature, fidx) => (
+                      <li 
+                        key={fidx} 
+                        style={{
+                          ...styles.pricingFeature,
+                          color: feature.included 
+                            ? (plan.highlighted ? "rgba(255,255,255,0.9)" : t.textSecondary)
+                            : (plan.highlighted ? "rgba(255,255,255,0.4)" : "#ccc")
+                        }}
+                      >
+                        <span style={styles.featureCheck}>
+                          {feature.included ? "✓" : "—"}
+                        </span>
+                        {feature.name}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* FINAL CTA SECTION */}
         <section style={styles.section}>
           <div style={styles.finalCTABox}>
             <h2 style={{ ...styles.finalCTATitle, color: t.textPrimary }}>
@@ -286,11 +197,10 @@ function AboutUs() {
           </div>
         </section>
 
-        {/* FOOTER */}
         <footer style={{ ...styles.footer, background: t.cardBg, borderTop: `1px solid ${t.border}` }}>
           <div style={styles.sectionInner}>
             <p style={{ ...styles.footerText, color: t.textSecondary }}>
-              © 2024 Sales Analytics. All rights reserved.
+              © 2026 Sales Analytics. All rights reserved.
             </p>
           </div>
         </footer>
@@ -300,6 +210,7 @@ function AboutUs() {
   );
 }
 
+// DATA
 const PROBLEMS = [
   {
     title: "Scattered Data",
@@ -315,91 +226,45 @@ const PROBLEMS = [
   }
 ];
 
-const FEATURES = [
-  {
-    title: "Real-Time Analytics",
-    description: "Live dashboards that update instantly. See your metrics in real time, not days later."
-  },
-  {
-    title: "Advanced Forecasting",
-    description: "Predict trends and opportunities before they happen. Stay ahead of the curve."
-  },
-  {
-    title: "Role-Based Access",
-    description: "Different views for Admins, Sales Reps, and Managers. Everyone sees what they need."
-  },
-  {
-    title: "Custom Reports",
-    description: "Build your own reports with simple tools. No technical skills required."
-  },
-  {
-    title: "Easy Exports",
-    description: "Export to CSV, Excel, or PDF with one click. Share insights with anyone, anywhere."
-  },
-  {
-    title: "Smart Alerts",
-    description: "Get notified of important changes instantly. Never miss critical trends or opportunities."
-  }
-];
-
-const STEPS = [
-  {
-    title: "Connect Your Data",
-    description: "Link your existing systems or upload files. We support all major CRMs and formats."
-  },
-  {
-    title: "Import History",
-    description: "Upload historical data via CSV or API. Bring in months or years of data instantly."
-  },
-  {
-    title: "Start Analyzing",
-    description: "Dashboard updates in real time as new data arrives. No setup or configuration needed."
-  },
-  {
-    title: "Make Decisions",
-    description: "Act on insights immediately. Export reports, share dashboards, close more deals."
-  }
-];
-
-const PERSONAS = [
-  {
-    title: "Sales Teams",
-    description: "Track personal performance, see your pipeline clearly, and close deals faster with real-time insights."
-  },
-  {
-    title: "Sales Managers",
-    description: "Monitor team performance, identify coaching opportunities, and spot trends before they become problems."
-  },
-  {
-    title: "Analysts",
-    description: "Dive deep into data, build custom reports, and provide strategic insights to company leadership."
-  }
-];
-
-const STATS = [
-  { number: "500+", label: "Companies Using Our Platform" },
-  { number: "40%", label: "Faster Reporting Time" },
-  { number: "24hrs", label: "Saved Per Week" }
-];
-
 const PRICING = [
   { 
     name: "Growth", 
     price: "€29/mo", 
     description: "Perfect for small teams",
-    highlighted: false 
+    highlighted: false,
+    features: [
+      { name: "Sales analytics dashboard", included: true },
+      { name: "Custom Dashboard (themes/colors)", included: true },
+      { name: "Data export (CSV, PDF)", included: true },
+      { name: "Automated alerts", included: true },
+      { name: "Performance reports - Monthly", included: true },
+    ]
   },
   { 
     name: "Pro", 
     price: "€75/mo", 
     description: "For growing sales organizations",
-    highlighted: true 
+    highlighted: true,
+    features: [
+      { name: "Sales analytics dashboard", included: true },
+      { name: "Custom Dashboard (themes/colors)", included: true },
+      { name: "Data export (CSV, PDF)", included: true },
+      { name: "Automated alerts", included: true },
+      { name: "Performance reports - Custom", included: true },
+    ]
   },
   { 
     name: "Enterprise", 
     price: "Custom", 
     description: "For large organizations",
-    highlighted: false 
+    highlighted: false,
+    features: [
+      { name: "Sales analytics dashboard", included: true },
+      { name: "Custom Dashboard (themes/colors)", included: true },
+      { name: "Data export (CSV, PDF)", included: true },
+      { name: "Automated alerts", included: true },
+      { name: "Performance reports - Custom", included: true },
+    ]
   }
 ];
 
@@ -580,98 +445,11 @@ const styles = {
     lineHeight: "1.8",
   },
 
-  featuresGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-    gap: "24px",
-  },
-  featureCard: {
-    padding: "28px",
-    borderRadius: "8px",
-  },
-  featureTitle: {
-    fontSize: "18px",
-    fontWeight: "600",
-    margin: "0 0 12px 0",
-  },
-  featureDescription: {
-    fontSize: "14px",
-    lineHeight: "1.6",
-    margin: 0,
-  },
-
-  stepsContainer: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-    gap: "32px",
-  },
-  stepItem: {
-    display: "flex",
-    gap: "20px",
-  },
-  stepNumber: {
-    minWidth: "48px",
-    height: "48px",
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "20px",
-    fontWeight: "700",
-    flexShrink: 0,
-  },
-  stepTitle: {
-    fontSize: "16px",
-    fontWeight: "600",
-    margin: "0 0 6px 0",
-  },
-  stepDescription: {
-    fontSize: "14px",
-    lineHeight: "1.6",
-    margin: 0,
-  },
-
-  personasGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: "24px",
-  },
-  personaCard: {
-    padding: "28px",
-    borderRadius: "8px",
-  },
-  personaTitle: {
-    fontSize: "18px",
-    fontWeight: "600",
-    margin: "0 0 12px 0",
-  },
-  personaText: {
-    fontSize: "14px",
-    lineHeight: "1.6",
-    margin: 0,
-  },
-
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "40px",
-    textAlign: "center",
-  },
-  statItem: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  statNumber: {
-    fontSize: "40px",
-    fontWeight: "700",
-  },
-
   pricingGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gridTemplateColumns: "repeat(3, 1fr)",
     gap: "24px",
-    maxWidth: "900px",
+    maxWidth: "1200px",
     margin: "0 auto",
   },
   pricingCard: {
@@ -714,6 +492,25 @@ const styles = {
     fontWeight: "600",
     cursor: "pointer",
     width: "100%",
+    marginBottom: "20px",
+  },
+  pricingFeatures: {
+    listStyle: "none",
+    padding: "20px 0 0 0",
+    margin: "0",
+    borderTop: "1px solid rgba(0,0,0,0.1)",
+    textAlign: "left",
+  },
+  pricingFeature: {
+    fontSize: "13px",
+    padding: "10px 0",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  featureCheck: {
+    color: "#16a34a",
+    fontWeight: "bold",
   },
 
   finalCTABox: {

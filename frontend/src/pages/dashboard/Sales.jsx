@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import SalesChart from "../../components/SalesChart";
+import RevenueAreaChart from "../../components/RevenueAreaChart";
 
 function Sales() {
   const { isDark } = useTheme();
@@ -12,13 +12,11 @@ function Sales() {
   const [selectedRep, setSelectedRep] = useState("all");
   const [selectedRegion, setSelectedRegion] = useState("all");
 
-  // Mock data
   const [revenueData, setRevenueData] = useState([]);
   const [salesByRep, setSalesByRep] = useState([]);
   const [salesByRegion, setSalesByRegion] = useState([]);
 
   useEffect(() => {
-    // Simulate API call
     setRevenueData(MOCK_REVENUE);
     setSalesByRep(MOCK_SALES_BY_REP);
     setSalesByRegion(MOCK_SALES_BY_REGION);
@@ -27,7 +25,6 @@ function Sales() {
   return (
     <div style={styles.wrapper}>
       
-      {/* Filters */}
       <div style={{ ...styles.filterBar, background: t.cardBg, border: `1px solid ${t.border}` }}>
         <div style={styles.filterGroup}>
           <label style={{ ...styles.label, color: t.textSecondary }}>Date Range:</label>
@@ -73,15 +70,11 @@ function Sales() {
         </div>
       </div>
 
-      {/* Revenue Chart */}
-      <SalesChart 
-        data={revenueData} 
-        type="line" 
-        title="Revenue Trend" 
-        isDetailed={true}
+      <RevenueAreaChart 
+        data={revenueData}
+        title="Revenue Trend"
       />
 
-      {/* Sales by Rep and Region */}
       <div style={styles.chartsGrid}>
         <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
           <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Sales by Rep</h3>
@@ -126,7 +119,6 @@ function Sales() {
         </div>
       </div>
 
-      {/* Performance Table */}
       <div style={{ ...styles.tableCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
         <h3 style={{ ...styles.tableTitle, color: t.textPrimary }}>Team Performance</h3>
         <div style={styles.tableWrapper}>
@@ -165,20 +157,19 @@ function Sales() {
   );
 }
 
-// MOCK DATA
 const MOCK_REVENUE = [
-  { month: "Jan", revenue: 28500 },
-  { month: "Feb", revenue: 32000 },
-  { month: "Mar", revenue: 29800 },
-  { month: "Apr", revenue: 35200 },
-  { month: "May", revenue: 31500 },
-  { month: "Jun", revenue: 38000 },
-  { month: "Jul", revenue: 34200 },
-  { month: "Aug", revenue: 36800 },
-  { month: "Sep", revenue: 33500 },
-  { month: "Oct", revenue: 37200 },
-  { month: "Nov", revenue: 35800 },
-  { month: "Dec", revenue: 41500 },
+  { month: "January", monthNum: 1, revenue: 28500 },
+  { month: "February", monthNum: 2, revenue: 32000 },
+  { month: "March", monthNum: 3, revenue: 29800 },
+  { month: "April", monthNum: 4, revenue: 35200 },
+  { month: "May", monthNum: 5, revenue: 31500 },
+  { month: "June", monthNum: 6, revenue: 38000 },
+  { month: "July", monthNum: 7, revenue: 34200 },
+  { month: "August", monthNum: 8, revenue: 36800 },
+  { month: "September", monthNum: 9, revenue: 33500 },
+  { month: "October", monthNum: 10, revenue: 37200 },
+  { month: "November", monthNum: 11, revenue: 35800 },
+  { month: "December", monthNum: 12, revenue: 41500 },
 ];
 
 const MOCK_SALES_BY_REP = [
@@ -201,7 +192,6 @@ const TEAM_PERFORMANCE = [
   { name: "Emily Davis", region: "North America", sales: 35200, deals: 25, avgDeal: 1408, target: 40000, percent: 88 },
 ];
 
-// THEME
 const light = {
   textPrimary: "#1a2a6c",
   textSecondary: "#555",
@@ -228,7 +218,6 @@ const dark = {
   warning: "#fbbf24",
 };
 
-// STYLES
 const styles = {
   wrapper: {
     display: "flex",
