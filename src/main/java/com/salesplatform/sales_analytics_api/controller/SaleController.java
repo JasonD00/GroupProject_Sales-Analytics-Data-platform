@@ -30,6 +30,7 @@ public class SaleController {
     // Returns all sales records as a list of SalesResponse DTOs
     @GetMapping
     public ResponseEntity<List<SalesResponse>> getAllSales() {
+
         return ResponseEntity.ok(salesService.getAllSales());
     }
 
@@ -40,4 +41,17 @@ public class SaleController {
     public ResponseEntity<SalesResponse> getSaleByOrderNumber(@PathVariable String orderNumber) {
         return ResponseEntity.ok(salesService.getSaleByOrderNumber(orderNumber));
     }
+
+    // GET /api/sales/client/product/{clientKey}
+    @GetMapping("/client/{clientKey}")
+    public ResponseEntity<List<SalesResponse>> getSaleByClientKey(@PathVariable Long clientKey) {
+        return ResponseEntity.ok(salesService.getSalesByClient(clientKey));
+    }
+
+    // GET /api/sales/total-revenue
+    @GetMapping("/total-revenue")
+    public ResponseEntity<Double> getTotalRevenue() {
+        return ResponseEntity.ok(salesService.getTotalRevenue());
+    }
+
 }

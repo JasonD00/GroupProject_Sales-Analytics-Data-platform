@@ -19,6 +19,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "dim_clients", schema = "gold")
+@Immutable
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

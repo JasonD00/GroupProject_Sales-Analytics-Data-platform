@@ -8,6 +8,7 @@ const ALL_NAV_ITEMS = [
   { id: "invoices",     label: "Invoices",     roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
   { id: "customers",    label: "Customers",    roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
   { id: "transactions", label: "Transactions", roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
+  { id: "salesTest", label: "SalesTest", roles: ["ADMIN", "SALES_MANAGER", "SALES_REP", "ANALYST"] },
 ];
 
 function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {

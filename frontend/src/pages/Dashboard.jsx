@@ -9,6 +9,7 @@ import Sales from "./dashboard/Sales";
 import Products from "./dashboard/Products";
 import Customers from "./dashboard/Customers";
 import Transactions from "./dashboard/Transactions";
+import SalesTest from "./dashboard/SalesTest.jsx";
 
 const pageTitles = {
   overview:     "Overview",
@@ -16,6 +17,7 @@ const pageTitles = {
   products:     "Products",
   customers:    "Customers",
   transactions: "Transactions",
+  salesTest : "SalesTest", // added for testing Jason
 };
 
 function Dashboard() {
@@ -44,8 +46,10 @@ function Dashboard() {
           {activeNav === "products"     && <Products />}
           {activeNav === "customers"    && <Customers />}
           {activeNav === "transactions" && <Transactions />}
+          {activeNav === "salesTest" && <SalesTest />}
         </div>
       </main>
+
 
       {showLoginModel && <LoginModel />}
     </div>
