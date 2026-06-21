@@ -1,217 +1,248 @@
+/*
+  Overview:
+  Left navigation panel
+  Filters nav links by the users sub tier, highlights the active page the users on 
+  Shows a tier badge at the bottom
+*/
+
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
+// Main nav items
 const NAV_ITEMS = [
-  {
-    id: "overview",
-    label: "Overview",
-    roles: ["ADMIN", "ANALYST", "SALES_MANAGER", "SALES_REP"], 
-  },
-  {
-    id: "sales",
-    label: "Sales",
-    roles: ["ADMIN", "ANALYST", "SALES_MANAGER"], 
-  },
-  {
-    id: "products",
-    label: "Products",
-    roles: ["ADMIN", "SALES_MANAGER"], 
-  },
-  {
-    id: "customers",
-    label: "Customers",
-    roles: ["ADMIN", "SALES_MANAGER", "SALES_REP"], 
-  },
-  {
-    id: "transactions",
-    label: "Transactions",
-    roles: ["ADMIN", "ANALYST", "SALES_MANAGER"], 
-  },
-  {
-    id: "invoices",
-    label: "Invoices",
-    roles: ["ADMIN", "SALES_MANAGER"],
-  },
+  { id: "overview",      label: "Overview",      tiers: ["Growth", "Pro", "Enterprise"] },
+  { id: "sales",         label: "Sales",          tiers: ["Pro", "Enterprise"]           },
+  { id: "customers",     label: "Customers",      tiers: ["Growth", "Pro", "Enterprise"] },
+  { id: "products",      label: "Products",       tiers: ["Enterprise"]                  },
+  { id: "transactions",  label: "Transactions",   tiers: ["Pro", "Enterprise"]           },
+  { id: "invoices",      label: "Invoices",       tiers: ["Pro", "Enterprise"]           },
 ];
 
+// Shows items shown below the sidebar divider - depends on tier 
 const FEATURE_ITEMS = [
-  {
-    id: "reports",
-    label: "Reports",
-    roles: ["ADMIN", "ANALYST", "SALES_MANAGER"],
-  },
-  {
-    id: "export",
-    label: "Data Export",
-    roles: ["ADMIN", "ANALYST", "SALES_MANAGER"],
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    roles: ["ADMIN", "ANALYST", "SALES_MANAGER", "SALES_REP"],
-  },
+  { id: "reports",  label: "Reports",      tiers: ["Pro", "Enterprise"]           },
+  { id: "export",   label: "Data Export",  tiers: ["Pro", "Enterprise"]           },
+  { id: "settings", label: "Settings",     tiers: ["Growth", "Pro", "Enterprise"] },
 ];
+
+const TIER_COLORS = {
+  Growth:     { bg: "#dcfce7", text: "#16a34a" },
+  Pro:        { bg: "#dbeafe", text: "#1d4ed8" },
+  Enterprise: { bg: "#ede9fe", text: "#7c3aed" },
+};
 
 function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
   const { user } = useAuth();
   const { isDark } = useTheme();
   const t = isDark ? dark : light;
 
+  // Filter nav items depending on the users tier
   const visibleNavItems = NAV_ITEMS.filter((item) => {
     if (!user) return item.id === "overview";
-    return item.roles.includes(user.role);
+    return item.tiers.includes(user.tier);
   });
 
   const visibleFeatureItems = FEATURE_ITEMS.filter((item) => {
     if (!user) return false;
-    return item.roles.includes(user.role);
+    return item.tiers.includes(user.tier);
   });
+
+  const tierColors = user ? TIER_COLORS[user.tier] : null;
 
   return (
     <div
       style={{
         ...styles.sidebar,
-        width: sidebarOpen ? "220px" : "60px",
-        background: t.bg,
+        width:       sidebarOpen ? "220px" : "60px",
+        background:  t.bg,
         borderRight: `1px solid ${t.border}`,
       }}
     >
-      <div style={styles.toggleContainer}>
+      {/* Toggle button */}
+      <div style={{ ...styles.toggleContainer, borderBottom: `1px solid ${t.border}` }}>
         <button
-          style={{ ...styles.toggleBtn, color: t.text }}
+          style={{ ...styles.toggleBtn, color: t.textMuted }}
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
-          {sidebarOpen ? "◀" : "▶"}
+          {sidebarOpen ? "<" : ">"}
         </button>
       </div>
 
       <nav style={styles.nav}>
-        {/* Main Navigation */}
-        {visibleNavItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveNav(item.id)}
-            style={{
-              ...styles.navItem,
-              background: activeNav === item.id ? t.activeBg : "transparent",
-              color: activeNav === item.id ? t.activeText : t.text,
-            }}
-          >
-            <span style={styles.icon}>{item.icon}</span>
-            {sidebarOpen && <span style={styles.label}>{item.label}</span>}
-          </button>
-        ))}
 
+        {/* Nav items */}
+        {visibleNavItems.map((item) => {
+          const isActive = activeNav === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveNav(item.id)}
+              style={{
+                ...styles.navItem,
+                background:  isActive ? t.activeBg  : "transparent",
+                color:       isActive ? t.activeText : t.text,
+                borderLeft:  isActive ? `3px solid ${t.activeAccent}` : "3px solid transparent",
+              }}
+            >
+              <span style={{ ...styles.dot, background: isActive ? t.activeAccent : t.textMuted }} />
+              {sidebarOpen && <span style={styles.label}>{item.label}</span>}
+            </button>
+          );
+        })}
+
+        {/* Divider between nav and features */}
         {visibleFeatureItems.length > 0 && (
-          <div style={{ ...styles.divider, borderColor: t.border, display: sidebarOpen ? "block" : "none" }} />
+          <div style={{ ...styles.divider, borderColor: t.border, margin: sidebarOpen ? "8px 16px" : "8px auto", width: sidebarOpen ? "auto" : "24px" }} />
         )}
 
-        {visibleFeatureItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveNav(item.id)}
-            style={{
-              ...styles.navItem,
-              background: activeNav === item.id ? t.activeBg : "transparent",
-              color: activeNav === item.id ? t.activeText : t.text,
-              fontSize: sidebarOpen ? "13px" : "13px",
-            }}
-          >
-            <span style={styles.icon}>{item.icon}</span>
-            {sidebarOpen && <span style={styles.label}>{item.label}</span>}
-          </button>
-        ))}
+        {visibleFeatureItems.map((item) => {
+          const isActive = activeNav === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveNav(item.id)}
+              style={{
+                ...styles.navItem,
+                background:  isActive ? t.activeBg  : "transparent",
+                color:       isActive ? t.activeText : t.text,
+                borderLeft:  isActive ? `3px solid ${t.activeAccent}` : "3px solid transparent",
+                fontSize:    "13px",
+              }}
+            >
+              <span style={{ ...styles.dot, background: isActive ? t.activeAccent : t.textMuted }} />
+              {sidebarOpen && <span style={styles.label}>{item.label}</span>}
+            </button>
+          );
+        })}
       </nav>
 
-      {/* User Role Badge at bottom */}
+      {/* Tier badge — shown at bottom */}
       {user && sidebarOpen && (
-        <div style={{ ...styles.roleBadge, background: t.badgeBg, color: t.badgeText }}>
-          {user.role}
+        <div style={styles.bottomSection}>
+          <div style={{ ...styles.tierBadge, background: tierColors.bg, color: tierColors.text }}>
+            {user.tier} Plan
+          </div>
+          <div style={{ ...styles.userLabel, color: t.textMuted }}>
+            {user.username}
+          </div>
+        </div>
+      )}
+
+      {user && !sidebarOpen && (
+        <div style={styles.collapsedBottom}>
+          <div style={{ ...styles.tierDot, background: tierColors.text }} title={`${user.tier} Plan`} />
         </div>
       )}
     </div>
   );
 }
 
+// STYLING
 const light = {
-  bg: "#ffffff",
-  border: "#e0e4ef",
-  text: "#555",
-  activeBg: "#1a2a6c",
-  activeText: "#fff",
-  badgeBg: "#f0f2f7",
-  badgeText: "#1a2a6c",
+  bg:           "#ffffff",
+  border:       "#e0e4ef",
+  text:         "#555",
+  textMuted:    "#bbb",
+  activeBg:     "rgba(26,42,108,0.06)",
+  activeText:   "#1a2a6c",
+  activeAccent: "#1a2a6c",
 };
 
 const dark = {
-  bg: "#1e293b",
-  border: "#334155",
-  text: "#94a3b8",
-  activeBg: "#7c9fff",
-  activeText: "#0f172a",
-  badgeBg: "#334155",
-  badgeText: "#e2e8f0",
+  bg:           "#1e293b",
+  border:       "#334155",
+  text:         "#94a3b8",
+  textMuted:    "#475569",
+  activeBg:     "rgba(124,159,255,0.1)",
+  activeText:   "#7c9fff",
+  activeAccent: "#7c9fff",
 };
 
 const styles = {
   sidebar: {
-    display: "flex",
-    flexDirection: "column",
-    transition: "width 0.3s",
-    overflow: "hidden",
+    display:        "flex",
+    flexDirection:  "column",
+    transition:     "width 0.25s ease",
+    overflow:       "hidden",
+    flexShrink:     0,
+    height:         "100vh",
   },
   toggleContainer: {
-    padding: "16px",
-    borderBottom: "1px solid rgba(0,0,0,0.1)",
+    padding:        "14px 16px",
+    display:        "flex",
+    alignItems:     "center",
   },
   toggleBtn: {
-    background: "transparent",
-    border: "none",
-    fontSize: "18px",
-    cursor: "pointer",
-    padding: "4px",
+    background:  "transparent",
+    border:      "none",
+    fontSize:    "14px",
+    cursor:      "pointer",
+    padding:     "4px",
+    fontWeight:  "600",
+    lineHeight:  1,
   },
   nav: {
-    flex: 1,
-    padding: "16px 0",
-    display: "flex",
+    flex:          1,
+    padding:       "12px 0",
+    display:       "flex",
     flexDirection: "column",
-    gap: "4px",
-    overflowY: "auto",
+    gap:           "2px",
+    overflowY:     "auto",
   },
   navItem: {
-    display: "flex",
+    display:    "flex",
     alignItems: "center",
-    gap: "12px",
-    padding: "12px 16px",
-    border: "none",
-    fontSize: "14px",
+    gap:        "12px",
+    padding:    "11px 18px",
+    border:     "none",
+    fontSize:   "14px",
     fontWeight: "500",
-    cursor: "pointer",
-    textAlign: "left",
-    transition: "background 0.2s",
-    borderRadius: "0",
+    cursor:     "pointer",
+    textAlign:  "left",
+    transition: "all 0.15s",
+    width:      "100%",
   },
-  icon: {
-    fontSize: "18px",
-    minWidth: "20px",
+  dot: {
+    width:        "6px",
+    height:       "6px",
+    borderRadius: "50%",
+    flexShrink:   0,
   },
   label: {
     whiteSpace: "nowrap",
+    fontSize:   "14px",
   },
   divider: {
-    height: "1px",
-    margin: "8px 0",
+    height:    0,
     borderTop: "1px solid",
   },
-  roleBadge: {
-    margin: "16px",
-    padding: "8px 12px",
+  bottomSection: {
+    padding:       "14px",
+    display:       "flex",
+    flexDirection: "column",
+    gap:           "6px",
+  },
+  tierBadge: {
+    padding:      "7px 12px",
     borderRadius: "6px",
-    fontSize: "11px",
-    fontWeight: "700",
+    fontSize:     "11px",
+    fontWeight:   "700",
+    textAlign:    "center",
+    letterSpacing:"0.3px",
+  },
+  userLabel: {
+    fontSize:  "11px",
     textAlign: "center",
-    textTransform: "uppercase",
+  },
+  collapsedBottom: {
+    padding:        "14px",
+    display:        "flex",
+    justifyContent: "center",
+  },
+  tierDot: {
+    width:        "8px",
+    height:       "8px",
+    borderRadius: "50%",
   },
 };
 

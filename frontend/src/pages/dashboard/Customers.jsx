@@ -1,436 +1,427 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
+import { useAuth } from "../../context/AuthContext";
+import * as Plot from "@observablehq/plot";
+import ChartToggle from "../../components/ChartToggle";
 
 function Customers() {
-  const { isDark } = useTheme();
-  const t = isDark ? dark : light;
-  
-  const navigate = useNavigate();
+  const { isDark }  = useTheme();
+  const { user }    = useAuth();
+  const navigate    = useNavigate();
+  const t           = isDark ? dark : light;
+  const tier        = user?.tier || "Growth";
 
+  const statusChartRef = useRef(null);
+
+  const [customers, setCustomers] = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState(null);
 
   const [regionFilter, setRegionFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("spend");
+  const [searchTerm,   setSearchTerm]   = useState("");
+  const [sortBy,       setSortBy]       = useState("name");
 
-  let filteredCustomers = MOCK_CUSTOMERS.filter((customer) => {
-    const matchesRegion = regionFilter === "all" || customer.region === regionFilter;
-    const matchesStatus = statusFilter === "all" || customer.status === statusFilter;
-    const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customer.id.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesRegion && matchesStatus && matchesSearch;
+  useEffect(() => {
+    fetch("http://localhost:8080/api/clients")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch customers");
+        return res.json();
+      })
+      .then((data) => {
+        const mapped = data.map((c) => ({
+          id:         c.clientId,
+          name:       `${c.firstName} ${c.lastName}`,
+          email:      c.email      || "N/A",
+          region:     c.country,
+          totalSpend: c.totalSpend || 0,
+          orders:     c.orders     || 0,
+          lastOrder:  c.createDate || "N/A",
+          status:     c.accountStatus,
+          segment:    c.clientSegment,
+        }));
+        setCustomers(mapped);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Filter + sort
+  let filtered = customers.filter((c) => {
+    const matchRegion = regionFilter === "all" || c.region === regionFilter;
+    const matchStatus = statusFilter === "all" || c.status === statusFilter;
+    const matchSearch =
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(c.id).toLowerCase().includes(searchTerm.toLowerCase());
+    return matchRegion && matchStatus && matchSearch;
   });
 
-  if (sortBy === "spend") {
-    filteredCustomers.sort((a, b) => b.totalSpend - a.totalSpend);
-  } else if (sortBy === "name") {
-    filteredCustomers.sort((a, b) => a.name.localeCompare(b.name));
-  }
+  if (sortBy === "spend") filtered.sort((a, b) => b.totalSpend - a.totalSpend);
+  if (sortBy === "name")  filtered.sort((a, b) => a.name.localeCompare(b.name));
+  if (sortBy === "orders") filtered.sort((a, b) => b.orders - a.orders);
+
+  // KPIs 
+  const totalCustomers  = customers.length;
+  const activeCount     = customers.filter(c => c.status === "Active").length;
+  const inactiveCount   = customers.filter(c => c.status === "Inactive").length;
+  const avgSpend        = totalCustomers > 0
+    ? Math.round(customers.reduce((s, c) => s + c.totalSpend, 0) / totalCustomers)
+    : 0;
+
+  // Mock monthly new customer data for chart
+  // TODO: replace with GET /api/clients/monthly
+  const MOCK_MONTHLY = [
+    { monthNum: 1, count: 42 }, { monthNum: 2, count: 38 },
+    { monthNum: 3, count: 55 }, { monthNum: 4, count: 49 },
+    { monthNum: 5, count: 61 }, { monthNum: 6, count: 58 },
+    { monthNum: 7, count: 72 }, { monthNum: 8, count: 65 },
+    { monthNum: 9, count: 70 }, { monthNum: 10, count: 83 },
+    { monthNum: 11, count: 78 }, { monthNum: 12, count: 90 },
+  ];
+
+  // Status charts
+  useEffect(() => {
+    if (!statusChartRef.current) return;
+    statusChartRef.current.innerHTML = "";
+
+    const statusData = [
+      { status: "Active",   count: customers.filter(c => c.status === "Active").length,   color: isDark ? "#22c55e" : "#16a34a" },
+      { status: "Inactive", count: customers.filter(c => c.status === "Inactive").length, color: isDark ? "#fbbf24" : "#f59e0b" },
+    ];
+
+    if (statusData.every(d => d.count === 0)) return;
+
+    const plot = Plot.plot({
+      width:        statusChartRef.current.offsetWidth || 400,
+      height:       110,
+      marginLeft:   88,
+      marginBottom: 38,
+      marginTop:    8,
+      marks: [
+        Plot.barX(statusData, { x: "count", y: "status", fill: (d) => d.color, rx: 3 }),
+        Plot.text(statusData, {
+          x: "count", y: "status",
+          text: (d) => d.count,
+          dx: 8,
+          fill: isDark ? "#e2e8f0" : "#1a2a6c",
+          fontSize: "11px", fontWeight: "600",
+        }),
+        Plot.ruleX([0]),
+      ],
+      x: { label: "Count", grid: true },
+      y: { label: null },
+      style: { fontSize: "11px", color: t.textSecondary, background: "transparent" },
+    });
+
+    statusChartRef.current.appendChild(plot);
+    return () => plot.remove();
+  }, [isDark, customers]);
 
   return (
     <div style={styles.wrapper}>
-      
+
+      {/* Summary Cards */}
       <div style={styles.summaryGrid}>
-        <div style={{ ...styles.summaryCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-          <div style={{ ...styles.summaryIcon, background: t.accentLight }}>👥</div>
-          <div>
-            <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>Total Customers</div>
-            <div style={{ ...styles.summaryValue, color: t.textPrimary }}>856</div>
+        {[
+          { label: "Total Customers",    value: totalCustomers,                           accent: t.accentLight  },
+          { label: "Active",             value: activeCount,                              accent: t.successLight },
+          { label: "Inactive",           value: inactiveCount,                            accent: t.warningLight },
+          { label: "Avg Lifetime Value", value: `€${(avgSpend/1000).toFixed(1)}K`,        accent: t.accentLight  },
+        ].map((card) => (
+          <div key={card.label} style={{ ...styles.summaryCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+            <div style={{ ...styles.summaryAccent, background: card.accent }} />
+            <div>
+              <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>{card.label}</div>
+              <div style={{ ...styles.summaryValue, color: t.textPrimary }}>{card.value}</div>
+            </div>
           </div>
+        ))}
+      </div>
+
+      {/* Charts */}
+      <div style={styles.chartsGrid}>
+
+        {/* New monthly customers*/}
+        <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>New Customers per Month</h3>
+          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Monthly gain trend</p>
+          <ChartToggle
+            data={MOCK_MONTHLY}
+            xKey="monthNum"
+            yKey="count"
+            xFormat={(d) => ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d]}
+            xDomain={[0.5, 12.5]}
+            yLabel="New Customers"
+            height={220}
+            tier={tier}
+          />
         </div>
 
-        <div style={{ ...styles.summaryCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-          <div style={{ ...styles.summaryIcon, background: t.successLight }}>✓</div>
-          <div>
-            <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>Active</div>
-            <div style={{ ...styles.summaryValue, color: t.textPrimary }}>742</div>
-          </div>
-        </div>
-
-        <div style={{ ...styles.summaryCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-          <div style={{ ...styles.summaryIcon, background: t.warningLight }}>⏸</div>
-          <div>
-            <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>Inactive</div>
-            <div style={{ ...styles.summaryValue, color: t.textPrimary }}>114</div>
-          </div>
-        </div>
-
-        <div style={{ ...styles.summaryCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-          <div style={{ ...styles.summaryIcon, background: t.accentLight }}>💰</div>
-          <div>
-            <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>Avg Lifetime Value</div>
-            <div style={{ ...styles.summaryValue, color: t.textPrimary }}>€12.4K</div>
-          </div>
+        <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Customer Status</h3>
+          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Active vs inactive breakdown</p>
+          {loading ? (
+            <div style={{ ...styles.loadingText, color: t.textSecondary }}>Loading...</div>
+          ) : (
+            <div ref={statusChartRef} style={{ width: "100%", marginTop: "12px" }} />
+          )}
         </div>
       </div>
 
+      {/* Filters */}
       <div style={{ ...styles.filterBar, background: t.cardBg, border: `1px solid ${t.border}` }}>
         <input
           type="text"
-          placeholder="Search customers..."
+          placeholder="Search by name, email or ID..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            ...styles.searchInput,
-            background: t.inputBg,
-            border: `1px solid ${t.border}`,
-            color: t.textPrimary,
-          }}
+          style={{ ...styles.searchInput, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
         />
-
-        <select
-          value={regionFilter}
-          onChange={(e) => setRegionFilter(e.target.value)}
-          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
-        >
+        <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)}
+          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}>
           <option value="all">All Regions</option>
           <option value="North America">North America</option>
           <option value="Europe">Europe</option>
           <option value="Asia">Asia</option>
           <option value="South America">South America</option>
         </select>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
-        >
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}>
           <option value="all">All Status</option>
           <option value="Active">Active</option>
           <option value="Inactive">Inactive</option>
         </select>
-
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
-        >
-          <option value="spend">Sort by Spend</option>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}>
           <option value="name">Sort by Name</option>
+          <option value="spend">Sort by Spend</option>
+          <option value="orders">Sort by Orders</option>
         </select>
       </div>
 
+      {/* Table */}
       <div style={{ ...styles.tableCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
         <div style={styles.tableHeader}>
-          <h3 style={{ ...styles.tableTitle, color: t.textPrimary }}>
-            Customer Directory ({filteredCustomers.length})
-          </h3>
+          <div>
+            <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Customer Directory</h3>
+            <p style={{ ...styles.chartSub, color: t.textSecondary }}>{filtered.length} results</p>
+          </div>
           <button style={styles.addBtn}>+ Add Customer</button>
         </div>
-        
-        <div style={styles.tableWrapper}>
-          <table style={styles.table}>
-            <thead>
-              <tr style={{ borderBottom: `2px solid ${t.border}` }}>
-                <th style={{ ...styles.th, color: t.textPrimary }}>Customer ID</th>
-                <th style={{ ...styles.th, color: t.textPrimary }}>Name</th>
-                <th style={{ ...styles.th, color: t.textPrimary }}>Email</th>
-                <th style={{ ...styles.th, color: t.textPrimary }}>Region</th>
-                <th style={{ ...styles.th, color: t.textPrimary }}>Total Spend</th>
-                <th style={{ ...styles.th, color: t.textPrimary }}>Orders</th>
-                <th style={{ ...styles.th, color: t.textPrimary }}>Avg Order</th>
-                <th style={{ ...styles.th, color: t.textPrimary }}>Last Order</th>
-                <th style={{ ...styles.th, color: t.textPrimary }}>Status</th>
-                <th style={{ ...styles.th, color: t.textPrimary }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCustomers.map((customer) => (
-                <tr key={customer.id} style={{ borderBottom: `1px solid ${t.borderLight}` }}>
-                  <td style={{ ...styles.td, color: t.textSecondary, fontFamily: "monospace" }}>
-                    {customer.id}
-                  </td>
-                  <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "500" }}>
-                    {customer.name}
-                  </td>
-                  <td style={{ ...styles.td, color: t.textSecondary, fontSize: "12px" }}>
-                    {customer.email}
-                  </td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>{customer.region}</td>
-                  <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "600" }}>
-                    €{customer.totalSpend.toLocaleString()}
-                  </td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>{customer.orders}</td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>
-                    €{Math.round(customer.totalSpend / customer.orders).toLocaleString()}
-                  </td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>{customer.lastOrder}</td>
-                  <td style={{ ...styles.td }}>
-                    <span
-                      style={{
-                        ...styles.statusBadge,
-                        background: customer.status === "Active" ? t.success : t.warning,
-                      }}
-                    >
-                      {customer.status}
-                    </span>
-                  </td>
-                  <td style={{ ...styles.td }}>
-                    <button
-                      onClick={() => navigate(`/customers/${customer.id}`)}
-                      style={{ ...styles.actionBtn, color: t.accent }}
-                    >
-                      View
-                    </button>
-                  </td>
+
+        {loading ? (
+          <div style={{ ...styles.loadingText, color: t.textSecondary }}>Loading customers...</div>
+        ) : error ? (
+          <div style={{ ...styles.errorText, color: t.danger }}>Error: {error}</div>
+        ) : (
+          <div style={styles.tableWrapper}>
+            <table style={styles.table}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+                  {["ID","Name","Email","Region","Total Spend","Orders","Avg Order","Last Order","Status",""].map((h) => (
+                    <th key={h} style={{ ...styles.th, color: t.textSecondary }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map((c) => (
+                  <tr key={c.id} style={{ borderBottom: `1px solid ${t.borderLight}` }}>
+                    <td style={{ ...styles.td, color: t.textSecondary, fontFamily: "monospace" }}>{c.id}</td>
+                    <td style={{ ...styles.td, color: t.textPrimary,   fontWeight: "500" }}>{c.name}</td>
+                    <td style={{ ...styles.td, color: t.textSecondary, fontSize: "12px" }}>{c.email}</td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{c.region}</td>
+                    <td style={{ ...styles.td, color: t.textPrimary,   fontWeight: "600" }}>€{c.totalSpend.toLocaleString()}</td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{c.orders}</td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>
+                      {c.orders > 0 ? `€${Math.round(c.totalSpend / c.orders).toLocaleString()}` : "—"}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{c.lastOrder}</td>
+                    <td style={{ ...styles.td }}>
+                      <span style={{
+                        ...styles.statusBadge,
+                        background: c.status === "Active" ? t.success : t.warning,
+                        color: "#fff",
+                      }}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td style={{ ...styles.td }}>
+                      <button
+                        onClick={() => navigate(`/customers/${c.id}`)}
+                        style={{ ...styles.actionBtn, color: t.accent }}
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
     </div>
   );
 }
 
-const MOCK_CUSTOMERS = [
-  {
-    id: "CUS-001",
-    name: "Acme Corp",
-    email: "contact@acmecorp.com",
-    region: "North America",
-    totalSpend: 45000,
-    orders: 23,
-    lastOrder: "2024-01-15",
-    status: "Active",
-  },
-  {
-    id: "CUS-002",
-    name: "Beta Ltd",
-    email: "info@betaltd.com",
-    region: "Europe",
-    totalSpend: 68000,
-    orders: 34,
-    lastOrder: "2024-01-18",
-    status: "Active",
-  },
-  {
-    id: "CUS-003",
-    name: "Gamma Inc",
-    email: "hello@gammainc.com",
-    region: "Asia",
-    totalSpend: 92000,
-    orders: 45,
-    lastOrder: "2024-01-20",
-    status: "Active",
-  },
-  {
-    id: "CUS-004",
-    name: "Delta Co",
-    email: "support@deltaco.com",
-    region: "North America",
-    totalSpend: 28500,
-    orders: 18,
-    lastOrder: "2024-01-12",
-    status: "Active",
-  },
-  {
-    id: "CUS-005",
-    name: "Epsilon LLC",
-    email: "contact@epsilonllc.com",
-    region: "Europe",
-    totalSpend: 15200,
-    orders: 12,
-    lastOrder: "2023-11-28",
-    status: "Inactive",
-  },
-  {
-    id: "CUS-006",
-    name: "Zeta Industries",
-    email: "info@zetaind.com",
-    region: "Asia",
-    totalSpend: 54000,
-    orders: 28,
-    lastOrder: "2024-01-19",
-    status: "Active",
-  },
-  {
-    id: "CUS-007",
-    name: "Theta Systems",
-    email: "contact@thetasys.com",
-    region: "North America",
-    totalSpend: 38000,
-    orders: 21,
-    lastOrder: "2024-01-17",
-    status: "Active",
-  },
-  {
-    id: "CUS-008",
-    name: "Iota Partners",
-    email: "hello@iotapartners.com",
-    region: "South America",
-    totalSpend: 22000,
-    orders: 15,
-    lastOrder: "2024-01-14",
-    status: "Active",
-  },
-  {
-    id: "CUS-009",
-    name: "Kappa Group",
-    email: "info@kappagroup.com",
-    region: "Europe",
-    totalSpend: 12000,
-    orders: 8,
-    lastOrder: "2023-10-15",
-    status: "Inactive",
-  },
-  {
-    id: "CUS-010",
-    name: "Lambda Corp",
-    email: "contact@lambdacorp.com",
-    region: "Asia",
-    totalSpend: 76000,
-    orders: 38,
-    lastOrder: "2024-01-21",
-    status: "Active",
-  },
-];
-
+// THEME
 const light = {
-  textPrimary: "#1a2a6c",
-  textSecondary: "#555",
-  cardBg: "#ffffff",
-  border: "#e0e4ef",
-  borderLight: "#f0f2f7",
-  inputBg: "#ffffff",
-  accent: "#1a2a6c",
-  success: "#16a34a",
-  warning: "#f59e0b",
-  accentLight: "#e0e7ff",
-  successLight: "#dcfce7",
-  warningLight: "#fef3c7",
+  textPrimary:   "#1a2a6c", textSecondary: "#555",
+  cardBg:        "#ffffff", border: "#e0e4ef", borderLight: "#f0f2f7",
+  inputBg:       "#ffffff", accent: "#1a2a6c",
+  success:       "#16a34a", successLight: "#dcfce7",
+  warning:       "#f59e0b", warningLight: "#fef3c7",
+  danger:        "#dc2626",
+  accentLight:   "#e0e7ff",
 };
-
 const dark = {
-  textPrimary: "#e2e8f0",
-  textSecondary: "#94a3b8",
-  cardBg: "#1e293b",
-  border: "#334155",
-  borderLight: "#334155",
-  inputBg: "#0f172a",
-  accent: "#7c9fff",
-  success: "#22c55e",
-  warning: "#fbbf24",
-  accentLight: "#1e3a8a",
-  successLight: "#065f46",
-  warningLight: "#78350f",
+  textPrimary:   "#e2e8f0", textSecondary: "#94a3b8",
+  cardBg:        "#1e293b", border: "#334155", borderLight: "#1e293b",
+  inputBg:       "#0f172a", accent: "#7c9fff",
+  success:       "#22c55e", successLight: "#064e3b",
+  warning:       "#fbbf24", warningLight: "#78350f",
+  danger:        "#ef4444",
+  accentLight:   "#1e3a8a",
 };
 
+// STYLING
 const styles = {
   wrapper: {
-    display: "flex",
+    display:       "flex",
     flexDirection: "column",
-    gap: "24px",
+    gap:           "20px",
   },
   summaryGrid: {
-    display: "grid",
+    display:             "grid",
     gridTemplateColumns: "repeat(4, 1fr)",
-    gap: "16px",
+    gap:                 "16px",
   },
   summaryCard: {
-    padding: "20px",
+    padding:      "18px 20px",
     borderRadius: "10px",
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
+    display:      "flex",
+    alignItems:   "center",
+    gap:          "14px",
   },
-  summaryIcon: {
-    width: "48px",
-    height: "48px",
-    borderRadius: "10px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "24px",
+  summaryAccent: {
+    width:        "4px",
+    height:       "40px",
+    borderRadius: "4px",
+    flexShrink:   0,
   },
   summaryLabel: {
-    fontSize: "12px",
+    fontSize:     "12px",
     marginBottom: "4px",
   },
   summaryValue: {
-    fontSize: "24px",
+    fontSize:   "24px",
     fontWeight: "700",
   },
-  filterBar: {
-    padding: "20px",
+  chartsGrid: {
+    display:             "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",
+    gap:                 "16px",
+  },
+  chartCard: {
+    padding:      "20px",
     borderRadius: "10px",
-    display: "flex",
-    gap: "12px",
-    flexWrap: "wrap",
+  },
+  chartTitle: {
+    margin:     "0 0 2px 0",
+    fontSize:   "14px",
+    fontWeight: "600",
+  },
+  chartSub: {
+    margin:   0,
+    fontSize: "12px",
+  },
+  loadingText: {
+    padding:   "40px",
+    textAlign: "center",
+    fontSize:  "13px",
+  },
+  errorText: {
+    padding:   "20px",
+    textAlign: "center",
+    fontSize:  "13px",
+  },
+  filterBar: {
+    padding:      "16px 20px",
+    borderRadius: "10px",
+    display:      "flex",
+    gap:          "10px",
+    flexWrap:     "wrap",
+    alignItems:   "center",
   },
   searchInput: {
-    flex: 1,
-    minWidth: "200px",
-    padding: "8px 14px",
+    flex:         1,
+    minWidth:     "220px",
+    padding:      "8px 14px",
     borderRadius: "6px",
-    fontSize: "13px",
-    outline: "none",
+    fontSize:     "13px",
+    outline:      "none",
   },
   select: {
-    padding: "8px 14px",
+    padding:      "8px 12px",
     borderRadius: "6px",
-    fontSize: "13px",
-    cursor: "pointer",
-    outline: "none",
+    fontSize:     "13px",
+    cursor:       "pointer",
+    outline:      "none",
   },
   tableCard: {
-    padding: "24px",
+    padding:      "20px",
     borderRadius: "10px",
   },
   tableHeader: {
-    display: "flex",
+    display:        "flex",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px",
-  },
-  tableTitle: {
-    margin: 0,
-    fontSize: "16px",
-    fontWeight: "700",
+    alignItems:     "flex-start",
+    marginBottom:   "16px",
   },
   addBtn: {
-    padding: "8px 16px",
-    background: "#1a2a6c",
-    color: "#fff",
-    border: "none",
+    padding:      "8px 16px",
+    background:   "#1a2a6c",
+    color:        "#fff",
+    border:       "none",
     borderRadius: "6px",
-    fontSize: "13px",
-    fontWeight: "600",
-    cursor: "pointer",
+    fontSize:     "13px",
+    fontWeight:   "600",
+    cursor:       "pointer",
   },
   tableWrapper: {
     overflowX: "auto",
   },
   table: {
-    width: "100%",
+    width:          "100%",
     borderCollapse: "collapse",
   },
   th: {
-    padding: "12px 16px",
-    textAlign: "left",
-    fontSize: "13px",
-    fontWeight: "600",
+    padding:       "10px 14px",
+    textAlign:     "left",
+    fontSize:      "11px",
+    fontWeight:    "600",
+    textTransform: "uppercase",
+    letterSpacing: "0.4px",
   },
   td: {
-    padding: "12px 16px",
+    padding:  "11px 14px",
     fontSize: "13px",
   },
   statusBadge: {
-    padding: "4px 10px",
-    borderRadius: "12px",
-    fontSize: "11px",
-    fontWeight: "600",
-    color: "#fff",
+    padding:      "3px 9px",
+    borderRadius: "20px",
+    fontSize:     "11px",
+    fontWeight:   "600",
   },
   actionBtn: {
-    background: "transparent",
-    border: "none",
-    fontSize: "13px",
-    fontWeight: "500",
-    cursor: "pointer",
+    background:     "transparent",
+    border:         "none",
+    fontSize:       "13px",
+    fontWeight:     "500",
+    cursor:         "pointer",
     textDecoration: "underline",
   },
 };
