@@ -1,8 +1,13 @@
 /*
-  Overview:
-  Manages the global auth state, stores the logged in users, handles login/logout requests, controls the login model
-  and provides "hasFeature()" to check if the users tier unlocks any features 
-*/
+The AuthContext will store the currently logged in users data (username, role) and make it
+accessible by any component.
+
+It will:
+    - Store the current user state (null when logged in)
+    - Provide "login()" function that saves the user to a state 
+    - Give a "logout()" function that clears the state
+    - Wrap the entire app so every page can access it
+ */
 
 import { createContext, useState, useContext } from "react";
 
