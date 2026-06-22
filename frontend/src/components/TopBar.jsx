@@ -14,11 +14,14 @@ function TopBar({ pageTitle }) {
         
         {user ? (
           <>
-            <div style={styles.userInfo}>
-              <span style={{ ...styles.username, color: t.textSecondary }}>{user.username}</span>
-              <span style={{ ...styles.roleBadge, background: t.badgeBg, color: t.textPrimary }}>{user.role}</span>
-            </div>
-            <button style={{ ...styles.logoutBtn, background: t.toggleBg, color: t.textPrimary }} onClick={logout}>
+            <button
+              style={{
+                ...styles.logoutBtn,  
+                background: t.toggleBg,
+                color: t.textPrimary
+              }}
+              onClick={logout}
+            >
               Logout
             </button>
           </>
