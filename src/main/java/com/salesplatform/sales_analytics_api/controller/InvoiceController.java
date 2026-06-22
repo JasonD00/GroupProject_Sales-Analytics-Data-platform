@@ -19,6 +19,6 @@ public class InvoiceController {
 
     @GetMapping
     public ResponseEntity<List<Invoice_Response>> getAllInvoices() {
-
+        return ResponseEntity.ok(invoiceService.getAllInvoices()); 
     }
 }

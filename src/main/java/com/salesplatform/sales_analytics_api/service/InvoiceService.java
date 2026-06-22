@@ -14,21 +14,19 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class InvoiceService {
 
-    private InvoiceRepository invoiceRepository;
+    private final InvoiceRepository invoiceRepository;
 
-    public List<InvoiceRepository> getAllInvoices() {
+    public List<Invoice_Response> getAllInvoices() {   
         return invoiceRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    private Object mapToResponse(Invoice invoice) {
+    private Invoice_Response mapToResponse(Invoice invoice) { 
         return Invoice_Response.builder()
                 .invoiceStatusKey(invoice.getInvoiceStatusKey())
                 .invoiceStatus(invoice.getInvoiceStatus())
                 .build();
     }
-
-
 }
