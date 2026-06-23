@@ -18,23 +18,30 @@ export function AuthProvider({ children }) {
   const [showLoginModel, setShowLoginModel] = useState(false);
 
   const login = (userData) => {
-    setUser(userData);
+    setUser({
+      ...userData,
+      tier: userData.tier || "Growth",
+    });
   };
 
   const logout = () => {
     setUser(null);
   };
 
-  const openLoginModel = () => {
-    setShowLoginModel(true);
-  };
+  const openLoginModel = () => setShowLoginModel(true);
+  const closeLoginModel = () => setShowLoginModel(false);
 
-  const closeLoginModel = () => {
-    setShowLoginModel(false);
+  // Returns true if the user thats logged in is >= than the required tier
+  const hasFeature = (requiredTier) => {
+    if (!user) return false;
+    const tierLevel = { Growth: 1, Pro: 2, Enterprise: 3 };
+    const userLevel = tierLevel[user.tier] || 1;
+    const required = tierLevel[requiredTier] || 1;
+    return userLevel >= required;
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, showLoginModel, openLoginModel, closeLoginModel }}>
+    <AuthContext.Provider value={{ user, login, logout, showLoginModel, openLoginModel, closeLoginModel, hasFeature }}>
       {children}
     </AuthContext.Provider>
   );
