@@ -17,7 +17,7 @@ const pageTitles = {
   products:     "Products",
   customers:    "Customers",
   transactions: "Transactions",
-  salesTest : "SalesTest", // added for testing Jason
+
 };
 
 function Dashboard() {
@@ -46,7 +46,6 @@ function Dashboard() {
           {activeNav === "products"     && <Products />}
           {activeNav === "customers"    && <Customers />}
           {activeNav === "transactions" && <Transactions />}
-          {activeNav === "salesTest" && <SalesTest />}
         </div>
       </main>
 
