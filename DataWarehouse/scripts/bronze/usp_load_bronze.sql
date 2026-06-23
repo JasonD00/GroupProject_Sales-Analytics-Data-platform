@@ -94,7 +94,7 @@ BEGIN
 		PRINT ' ERP Tables being loaded';
 		PRINT '===============================================';
 
-		-- Load ERP client geography data:
+		-- Load ERP invoice client data:
 		SET @start_time = GETDATE();
 		PRINT '-- Truncating Table: bronze.erp_invoice_client';
 		TRUNCATE TABLE bronze.erp_invoice_client;
@@ -108,7 +108,7 @@ BEGIN
 		SET @end_time = GETDATE();
 		PRINT '-- Load Time: ' + CAST (DATEDIFF(second, @start_time, @end_time) AS NVARCHAR) + ' seconds';
 		
-		-- Load ERP client info data:
+		-- Load ERP product details data:
 		SET @start_time = GETDATE();
 		PRINT '-- Truncating Table: bronze.erp_product_details';
 		TRUNCATE TABLE bronze.erp_product_details;
@@ -122,7 +122,7 @@ BEGIN
 		SET @end_time = GETDATE();
 		PRINT '-- Load Time: ' + CAST (DATEDIFF(second, @start_time, @end_time) AS NVARCHAR) + ' seconds';
 
-		-- Load ERP product category data:
+		-- Load ERP invoice transactions data:
 		SET @start_time = GETDATE();
 		PRINT '-- Truncating Table: bronze.erp_invoice_transactions';
 		TRUNCATE TABLE bronze.erp_invoice_transactions;
