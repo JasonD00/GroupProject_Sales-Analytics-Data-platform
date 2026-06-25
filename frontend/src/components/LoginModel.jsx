@@ -9,56 +9,94 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-
-const TIERS = [
-  { name: "Growth",     price: "€29/mo",  description: "Basic analytics"   },
-  { name: "Pro",        price: "€75/mo",  description: "Full analytics"     },
-  { name: "Enterprise", price: "Custom",  description: "All features"       },
-];
-
-const TIER_COLORS = {
-  Growth:     "#16a34a",
-  Pro:        "#1a2a6c",
-  Enterprise: "#7c3aed",
-};
-
+ 
 function LoginModel() {
   const { login, closeLoginModel } = useAuth();
   const { isDark } = useTheme();
   const t = isDark ? dark : light;
-
-  const [username, setUsername]         = useState("");
-  const [password, setPassword]         = useState("");
-  const [selectedTier, setSelectedTier] = useState("Pro");
-  const [error, setError]               = useState("");
-
-  const handleLogin = () => {
-    if (!username.trim()) { setError("Please enter a username"); return; }
-    if (!password.trim()) { setError("Please enter a password"); return; }
-
-    // TODO: Replace with real API call to POST /api/auth/login
-    login({ username: username.trim(), tier: selectedTier });
-    closeLoginModel();
+ 
+  const [username,   setUsername]   = useState("");
+  const [password,   setPassword]   = useState("");
+  const [error,      setError]      = useState("");
+  const [isLoading,  setIsLoading]  = useState(false);
+ 
+  const handleLogin = async () => {
+    // Basic validation
+    if (!username.trim()) { setError("Please enter your username"); return; }
+    if (!password.trim()) { setError("Please enter your password"); return; }
+ 
+    setIsLoading(true);
+    setError("");
+ 
+    try {
+      // Call Spring Boot login endpoint
+      const response = await fetch("http://localhost:8080/api/auth/login", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          username: username.trim(),
+          password: password,
+        }),
+      });
+ 
+      if (!response.ok) {
+        // 401 = wrong credentials
+        setError("Invalid username or password");
+        return;
+      }
+ 
+      // Parse the response — { username, tier }
+      const data = await response.json();
+ 
+      // Store user in AuthContext
+      login({
+        username: data.username,
+        tier:     data.tier,
+      });
+ 
+      // Close the modal
+      closeLoginModel();
+ 
+    } catch (err) {
+      // Network error — backend not running etc
+      setError("Could not connect to server. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
-
+ 
+  // Allow login on Enter key press
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleLogin();
+  };
+ 
   return (
     <div style={styles.overlay}>
       <div style={{ ...styles.modal, background: t.cardBg, border: `1px solid ${t.border}` }}>
-
+ 
         {/* Header */}
         <div style={styles.header}>
           <div>
             <h2 style={{ ...styles.title, color: t.textPrimary }}>Sign In</h2>
-            <p style={{ ...styles.subtitle, color: t.textSecondary }}>Access your analytics dashboard</p>
+            <p style={{ ...styles.subtitle, color: t.textSecondary }}>
+              Access your analytics dashboard
+            </p>
           </div>
-          <button onClick={closeLoginModel} style={{ ...styles.closeBtn, color: t.textSecondary }}>
+          <button
+            onClick={closeLoginModel}
+            style={{ ...styles.closeBtn, color: t.textSecondary }}
+          >
             x
           </button>
         </div>
-
-        {/* Error - not implemented yet*/}
-        {error && <div style={styles.errorBox}>{error}</div>}
-
+ 
+        {/* Error message */}
+        {error && (
+          <div style={styles.errorBox}>
+            {error}
+          </div>
+        )}
+ 
         {/* Username */}
         <div style={styles.field}>
           <label style={{ ...styles.label, color: t.textSecondary }}>Username</label>
@@ -66,11 +104,19 @@ function LoginModel() {
             type="text"
             value={username}
             onChange={(e) => { setUsername(e.target.value); setError(""); }}
+            onKeyDown={handleKeyDown}
             placeholder="Enter your username"
-            style={{ ...styles.input, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
+            disabled={isLoading}
+            style={{
+              ...styles.input,
+              background: t.inputBg,
+              border:     `1px solid ${t.border}`,
+              color:      t.textPrimary,
+              opacity:    isLoading ? 0.6 : 1,
+            }}
           />
         </div>
-
+ 
         {/* Password */}
         <div style={styles.field}>
           <label style={{ ...styles.label, color: t.textSecondary }}>Password</label>
@@ -78,53 +124,38 @@ function LoginModel() {
             type="password"
             value={password}
             onChange={(e) => { setPassword(e.target.value); setError(""); }}
+            onKeyDown={handleKeyDown}
             placeholder="Enter your password"
-            style={{ ...styles.input, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
+            disabled={isLoading}
+            style={{
+              ...styles.input,
+              background: t.inputBg,
+              border:     `1px solid ${t.border}`,
+              color:      t.textPrimary,
+              opacity:    isLoading ? 0.6 : 1,
+            }}
           />
         </div>
-
-        {/* Tier selection */}
-        <div style={styles.field}>
-          <label style={{ ...styles.label, color: t.textSecondary }}>Subscription Plan</label>
-          <div style={styles.tierGrid}>
-            {TIERS.map((tier) => (
-              <button
-                key={tier.name}
-                onClick={() => setSelectedTier(tier.name)}
-                style={{
-                  ...styles.tierBtn,
-                  border: selectedTier === tier.name
-                    ? `2px solid ${TIER_COLORS[tier.name]}`
-                    : `1px solid ${t.border}`,
-                  background: selectedTier === tier.name
-                    ? isDark ? "rgba(124,159,255,0.08)" : "rgba(26,42,108,0.04)"
-                    : t.inputBg,
-                }}
-              >
-                <div style={{ ...styles.tierDot, background: TIER_COLORS[tier.name] }} />
-                <div style={{ ...styles.tierName, color: TIER_COLORS[tier.name] }}>{tier.name}</div>
-                <div style={{ ...styles.tierPrice, color: t.textSecondary }}>{tier.price}</div>
-                <div style={{ ...styles.tierDesc, color: t.textSecondary }}>{tier.description}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Submit button */}
-        <button style={styles.loginBtn} onClick={handleLogin}>
-          Sign In
+ 
+        {/* Submit */}
+        <button
+          style={{
+            ...styles.loginBtn,
+            opacity: isLoading ? 0.7 : 1,
+            cursor:  isLoading ? "not-allowed" : "pointer",
+          }}
+          onClick={handleLogin}
+          disabled={isLoading}
+        >
+          {isLoading ? "Signing in..." : "Sign In"}
         </button>
-
-        <p style={{ ...styles.note, color: t.textSecondary }}>
-          Demo mode — select a plan to explore the dashboard
-        </p>
+ 
       </div>
     </div>
   );
 }
-
-// STYLING
-
+ 
+// ===== THEME =====
 const light = {
   textPrimary:   "#1a2a6c",
   textSecondary: "#555",
@@ -132,7 +163,7 @@ const light = {
   border:        "#e0e4ef",
   inputBg:       "#f8f9fc",
 };
-
+ 
 const dark = {
   textPrimary:   "#e2e8f0",
   textSecondary: "#94a3b8",
@@ -140,7 +171,8 @@ const dark = {
   border:        "#334155",
   inputBg:       "#0f172a",
 };
-
+ 
+// ===== STYLES =====
 const styles = {
   overlay: {
     position:       "fixed",
@@ -154,7 +186,7 @@ const styles = {
   },
   modal: {
     width:        "100%",
-    maxWidth:     "460px",
+    maxWidth:     "420px",
     borderRadius: "12px",
     padding:      "32px",
     boxShadow:    "0 20px 60px rgba(0,0,0,0.25)",
@@ -209,39 +241,6 @@ const styles = {
     outline:      "none",
     boxSizing:    "border-box",
   },
-  tierGrid: {
-    display:             "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap:                 "8px",
-  },
-  tierBtn: {
-    padding:      "14px 8px",
-    borderRadius: "8px",
-    cursor:       "pointer",
-    textAlign:    "center",
-    transition:   "all 0.15s",
-    display:      "flex",
-    flexDirection:"column",
-    alignItems:   "center",
-    gap:          "4px",
-  },
-  tierDot: {
-    width:        "8px",
-    height:       "8px",
-    borderRadius: "50%",
-    marginBottom: "2px",
-  },
-  tierName: {
-    fontSize:   "13px",
-    fontWeight: "700",
-  },
-  tierPrice: {
-    fontSize:   "11px",
-    fontWeight: "600",
-  },
-  tierDesc: {
-    fontSize: "10px",
-  },
   loginBtn: {
     width:        "100%",
     padding:      "12px",
@@ -251,14 +250,8 @@ const styles = {
     borderRadius: "8px",
     fontSize:     "14px",
     fontWeight:   "600",
-    cursor:       "pointer",
-    marginBottom: "12px",
-  },
-  note: {
-    fontSize:  "12px",
-    textAlign: "center",
-    margin:    0,
+    marginTop:    "4px",
   },
 };
-
+ 
 export default LoginModel;
