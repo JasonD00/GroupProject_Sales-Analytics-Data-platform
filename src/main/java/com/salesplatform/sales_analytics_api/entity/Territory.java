@@ -10,6 +10,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Immutable;
 
+/*  Territory entity
+
+    @Entity Male the class a JPA entity
+    @Table Map entity to a db table or view
+    @Id define the primary key
+    @Column map field to column
+*/
+
 @Entity
 @Table(name = "dim_territory", schema = "gold")
 @Immutable

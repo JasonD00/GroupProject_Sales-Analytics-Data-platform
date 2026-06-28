@@ -1,6 +1,7 @@
 package com.salesplatform.sales_analytics_api.controller;
 
 import com.salesplatform.sales_analytics_api.dto.ProductResponse;
+import com.salesplatform.sales_analytics_api.dto.ProductSummaryResponse;
 import com.salesplatform.sales_analytics_api.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -38,5 +39,12 @@ public class ProductController {
     @GetMapping("/{productKey}")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable Long productKey) {
         return ResponseEntity.ok(productService.getProductById(productKey));
+    }
+
+    // GET /api/products/summary
+    // Returns all products with aggregated sales data
+    @GetMapping("/summary")
+    public ResponseEntity<List<ProductSummaryResponse>> getProductSummary() {
+        return ResponseEntity.ok(productService.getProductSummary());
     }
 }

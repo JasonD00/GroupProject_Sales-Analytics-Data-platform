@@ -14,6 +14,11 @@ import java.time.LocalDate;
     This entity represents the view = fact.sales in the gold layer of the db
 
     Previous mock data has been changed to represent the complete DB
+
+    @Entity Male the class a JPA entity
+    @Table Map entity to a db table or view
+    @Id define the primary key
+    @Column map field to column
  */
 
 @Entity

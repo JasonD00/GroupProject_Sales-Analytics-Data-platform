@@ -1,5 +1,6 @@
 package com.salesplatform.sales_analytics_api.service;
 
+import com.salesplatform.sales_analytics_api.dto.SalesByTerritoryResponse;
 import com.salesplatform.sales_analytics_api.dto.SalesResponse;
 import com.salesplatform.sales_analytics_api.entity.Sales;
 import com.salesplatform.sales_analytics_api.repository.SaleRepository;
@@ -77,6 +78,21 @@ public class SalesService {
                 .stream()
                 .mapToDouble(s -> s.getSalesAmount() != null ? s.getSalesAmount() : 0.0)
                 .sum();
+    }
+
+    // Fetch aggregated sales by territory
+    // Joins fact_sales with dim_clients and dim_territory
+    public List<SalesByTerritoryResponse> getSalesByTerritory() {
+        return saleRepository.findSalesByTerritory()
+                .stream()
+                .map(row -> SalesByTerritoryResponse.builder()
+                        .country((String) row[0])
+                        .clientSegment((String) row[1])
+                        .totalRevenue(((Number) row[2]).doubleValue())
+                        .totalOrders(((Number) row[3]).longValue())
+                        .avgOrderValue(((Number) row[4]).doubleValue())
+                        .build())
+                .collect(Collectors.toList());
     }
 
 

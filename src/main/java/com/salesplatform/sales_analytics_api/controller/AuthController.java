@@ -25,9 +25,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
+            System.out.println("=== CONTROLLER DEBUG ===");
             LoginResponse response = authService.login(request);
+            System.out.println("Login successful, returning response: " + response);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            System.out.println("Login failed with error: " + e.getMessage());
             return ResponseEntity.status(401).body("Invalid username or password");
         }
     }
