@@ -1,9 +1,7 @@
 /*
-  Customers page
-
   Endpoints used:
-    GET /api/clients → full customer list (name, region, status, segment etc)
-    GET /api/clients/summary → adds totalSpend, orders, avgOrder, lastOrder per customer
+    GET /api/clients - full customer list (name, region, status, segment etc)
+    GET /api/clients/summary - adds totalSpend, orders, avgOrder, lastOrder per customer
 
   API fields:
     clientID - id
@@ -13,11 +11,6 @@
     clientSegment - segment (Retail, Corporate, Wholesale, etc)
     birthDate - birthDate
     createDate - createDate
-
-  What it shows:
-    - Summary cards: Total, Active, Suspended/Closed, unique regions
-    - Filters: search, region, status, segment, sort
-    - Customer table with all the fields from the database
 */
 
 import { useState, useEffect } from "react";
