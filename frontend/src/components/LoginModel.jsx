@@ -51,7 +51,8 @@ function LoginModel() {
       // Store user in AuthContext
       login({
         username: data.username,
-        tier:     data.tier,
+        tier: data.tier,
+        token: data.token,    
       });
  
       // Close the modal
@@ -155,7 +156,7 @@ function LoginModel() {
   );
 }
  
-// ===== THEME =====
+// THEME
 const light = {
   textPrimary:   "#1a2a6c",
   textSecondary: "#555",
@@ -172,7 +173,7 @@ const dark = {
   inputBg:       "#0f172a",
 };
  
-// ===== STYLES =====
+// STYLING
 const styles = {
   overlay: {
     position:       "fixed",

@@ -15,42 +15,43 @@ export const AuthContext = createContext(null);
  
 export function AuthProvider({ children }) {
   const [user,           setUser]           = useState(null);
+  const [token,          setToken]          = useState(null);
   const [showLoginModel, setShowLoginModel] = useState(false);
  
   const login = (userData) => {
-    // userData comes from POST /api/auth/login response
-    // shape: { username, tier }
-    // tier from backend is uppercase e.g. "ENTERPRISE"
-    // normalising it for frontend "Enterprise"
-    const normalisedTier = userData.tier
-      ? userData.tier.charAt(0).toUpperCase() + userData.tier.slice(1).toLowerCase()
-      : "Growth";
- 
-    setUser({
-      username: userData.username,
-      tier:     normalisedTier,
-    });
-  };
+  setUser({
+    username: userData.username,
+    tier:     userData.tier,
+  });
+  setToken(userData.token);
+};
  
   const logout = () => {
     setUser(null);
+    setToken(null);
   };
  
   const openLoginModel  = () => setShowLoginModel(true);
   const closeLoginModel = () => setShowLoginModel(false);
  
-  // Returns true if the logged in user's tier is >= required tier
+  // Returns true if the logged in users tier is >= required tier
   const hasFeature = (requiredTier) => {
-    if (!user) return false;
-    const tierLevel = { Growth: 1, Pro: 2, Enterprise: 3 };
-    const userLevel = tierLevel[user.tier] || 1;
-    const required  = tierLevel[requiredTier] || 1;
-    return userLevel >= required;
+  if (!user) return false;
+  const tierLevel = {
+    // Handle both uppercase (from backend) and capitalised (in frontend)
+    GROWTH: 1, Growth: 1,
+    PRO: 2,    Pro: 2,
+    ENTERPRISE: 3, Enterprise: 3,
   };
+  const userLevel = tierLevel[user.tier] || 1;
+  const required  = tierLevel[requiredTier] || 1;
+  return userLevel >= required;
+};
  
   return (
     <AuthContext.Provider value={{
       user,
+      token,
       login,
       logout,
       showLoginModel,

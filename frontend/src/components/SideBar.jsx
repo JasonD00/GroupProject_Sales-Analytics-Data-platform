@@ -10,25 +10,24 @@ import { useTheme } from "../context/ThemeContext";
 
 // Main nav items
 const NAV_ITEMS = [
-  { id: "overview",      label: "Overview",      tiers: ["Growth", "Pro", "Enterprise"] },
-  { id: "sales",         label: "Sales",          tiers: ["Pro", "Enterprise"]           },
-  { id: "customers",     label: "Customers",      tiers: ["Growth", "Pro", "Enterprise"] },
-  { id: "products",      label: "Products",       tiers: ["Enterprise"]                  },
-  { id: "transactions",  label: "Transactions",   tiers: ["Pro", "Enterprise"]           },
-  { id: "invoices",      label: "Invoices",       tiers: ["Pro", "Enterprise"]           },
+  { id: "overview",     label: "Overview",     tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
+  { id: "sales",        label: "Sales",         tiers: ["PRO", "ENTERPRISE"]           },
+  { id: "customers",    label: "Customers",     tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
+  { id: "products",     label: "Products",      tiers: ["ENTERPRISE"]                  },
+  { id: "transactions", label: "Transactions",  tiers: ["PRO", "ENTERPRISE"]           },
+  { id: "invoices",     label: "Invoices",      tiers: ["PRO", "ENTERPRISE"]           },
 ];
 
-// Shows items shown below the sidebar divider - depends on tier 
 const FEATURE_ITEMS = [
-  { id: "reports",  label: "Reports",      tiers: ["Pro", "Enterprise"]           },
-  { id: "export",   label: "Data Export",  tiers: ["Pro", "Enterprise"]           },
-  { id: "settings", label: "Settings",     tiers: ["Growth", "Pro", "Enterprise"] },
+  { id: "reports",  label: "Reports",     tiers: ["PRO", "ENTERPRISE"]           },
+  { id: "export",   label: "Data Export", tiers: ["PRO", "ENTERPRISE"]           },
+  { id: "settings", label: "Settings",    tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
 ];
 
 const TIER_COLORS = {
-  Growth:     { bg: "#dcfce7", text: "#16a34a" },
-  Pro:        { bg: "#dbeafe", text: "#1d4ed8" },
-  Enterprise: { bg: "#ede9fe", text: "#7c3aed" },
+  GROWTH:     { bg: "#dcfce7", text: "#16a34a" },
+  PRO:        { bg: "#dbeafe", text: "#1d4ed8" },
+  ENTERPRISE: { bg: "#ede9fe", text: "#7c3aed" },
 };
 
 function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
@@ -47,7 +46,7 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
     return item.tiers.includes(user.tier);
   });
 
-  const tierColors = user ? TIER_COLORS[user.tier] : null;
+  const tierColors = user ? (TIER_COLORS[user.tier] || TIER_COLORS["ENTERPRISE"]) : null;
 
   return (
     <div
@@ -119,8 +118,8 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
       {/* Tier badge — shown at bottom */}
       {user && sidebarOpen && (
         <div style={styles.bottomSection}>
-          <div style={{ ...styles.tierBadge, background: tierColors.bg, color: tierColors.text }}>
-            {user.tier} Plan
+          <div style={{ ...styles.tierBadge, background: tierColors?.bg, color: tierColors?.text }}>
+            {user.tier.charAt(0) + user.tier.slice(1).toLowerCase()} Plan
           </div>
           <div style={{ ...styles.userLabel, color: t.textMuted }}>
             {user.username}
@@ -130,7 +129,7 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
 
       {user && !sidebarOpen && (
         <div style={styles.collapsedBottom}>
-          <div style={{ ...styles.tierDot, background: tierColors.text }} title={`${user.tier} Plan`} />
+          <div style={{ ...styles.tierDot, background: tierColors?.text }} title={`${user.tier} Plan`} />
         </div>
       )}
     </div>

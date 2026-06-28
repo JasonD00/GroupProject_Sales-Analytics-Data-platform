@@ -1,27 +1,114 @@
 /*
-  Overview:
-  Main dashboard page
-  Shows KPIs cards
-  4 mini charts that shows revenue, customers, invoices and transactions and a recent transactions table underneath
+
+  Endpoints used:
+    GET /api/sales/total-revenue → total revenue KPI card
+    GET /api/clients/summary     → total customers + active count KPI cards
+    GET /api/sales/territory     → revenue by region chart (Pro+)
+    GET /api/sales               → recent transactions table
+
+  All endpoints require JWT token in Authorisation header.
 */
 
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import ChartToggle from "../../components/ChartToggle";
 
 function Overview() {
-  const { user, openLoginModel, hasFeature } = useAuth();
+  const { user, token, openLoginModel, hasFeature } = useAuth();
   const { isDark } = useTheme();
   const t    = isDark ? dark : light;
   const tier = user?.tier || "Growth";
 
-  const visibleTransactions = hasFeature("Pro")
-    ? MOCK_RECENT_TRANSACTIONS
-    : MOCK_RECENT_TRANSACTIONS.slice(0, 3);
+  // API state
+  const [totalRevenue,  setTotalRevenue]  = useState(null);
+  const [customerStats, setCustomerStats] = useState(null);
+  const [recentSales,   setRecentSales]   = useState([]);
+  const [territory,     setTerritory]     = useState([]);
+  const [loading,       setLoading]       = useState(true);
 
-  const getStatusBg   = (s) => ({ Success: t.success, Failed: t.danger, Pending: t.warning }[s] || t.textSecondary);
-  const getTypeBg     = (tp) => tp === "Sale" ? t.accentLight : t.warningLight;
-  const getTypeColor  = (tp) => tp === "Sale" ? t.accent      : t.warning;
+  // Auth header for every API call
+  const authHeader = {
+    "Authorization": `Bearer ${token}`,
+    "Content-Type":  "application/json",
+  };
+
+  useEffect(() => {
+    if (!token) return;
+
+    const fetches = [
+      // Total revenue — all tiers
+      fetch("http://localhost:8080/api/sales/total-revenue", { headers: authHeader })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => setTotalRevenue(d)),
+
+      // Customer summary — all tiers
+      fetch("http://localhost:8080/api/clients/summary", { headers: authHeader })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (d) {
+            setCustomerStats({
+              total:  d.length,
+              active: d.filter(c => c.accountStatus === "Active").length,
+            });
+          }
+        }),
+
+      // Recent sales — all tiers
+      fetch("http://localhost:8080/api/sales", { headers: authHeader })
+        .then(r => r.ok ? r.json() : [])
+        .then(d => setRecentSales(d.slice(0, 8))),
+    ];
+
+    // Territory data — Pro+ only
+    if (hasFeature("Pro")) {
+      fetches.push(
+        fetch("http://localhost:8080/api/sales/territory", { headers: authHeader })
+          .then(r => r.ok ? r.json() : [])
+          .then(d => setTerritory(d))
+      );
+    }
+
+    Promise.all(fetches).finally(() => setLoading(false));
+  }, [token]);
+
+  // Build KPI cards using data from database
+  const kpiCards = [
+    {
+      label:    "Total Revenue",
+      value:    totalRevenue != null ? `€${(totalRevenue / 1000).toFixed(0)}K` : "—",
+      positive: true,
+    },
+    {
+      label:    "Total Customers",
+      value:    customerStats ? customerStats.total : "—",
+      positive: true,
+    },
+    {
+      label:    "Active Customers",
+      value:    customerStats ? customerStats.active : "—",
+      positive: true,
+    },
+    {
+      label:    "Recent Sales",
+      value:    recentSales.length > 0 ? recentSales.length : "—",
+      positive: true,
+    },
+  ];
+
+  // Build territory chart data
+  // GET /api/sales/territory returns: { country, clientSegment, totalRevenue, orderCount, avgOrderValue }
+  const territoryChartData = territory.map((t, i) => ({
+    monthNum: i + 1,
+    revenue:  t.totalRevenue || 0,
+    label:    `${t.country} - ${t.clientSegment}`,
+  }));
+
+  // Recent transactions from sales data
+  // GET /api/sales returns: { salesOrdNum, salesOrderDt, salesSales, salesQuantity, salesPrice }
+  const visibleSales = hasFeature("Pro") ? recentSales : recentSales.slice(0, 3);
+
+  const getStatusBg  = (s) => ({ Success: t.success, Failed: t.danger, Pending: t.warning }[s] || t.textSecondary);
 
   return (
     <div style={styles.wrapper}>
@@ -31,7 +118,7 @@ function Overview() {
         <div style={{ ...styles.banner, background: t.cardBg, border: `1px solid ${t.border}` }}>
           <div>
             <div style={{ ...styles.bannerTitle, color: t.textPrimary }}>Welcome to Sales Analytics</div>
-            <div style={{ ...styles.bannerSub,   color: t.textSecondary }}>
+            <div style={{ ...styles.bannerSub, color: t.textSecondary }}>
               Sign in to unlock full dashboard access based on your subscription plan.
             </div>
           </div>
@@ -39,48 +126,47 @@ function Overview() {
         </div>
       )}
 
-      {/* Indicator showing tiers */}
-      {user && (
-        <div style={{ ...styles.tierRow, background: t.cardBg, border: `1px solid ${t.border}` }}>
-          <span style={{ ...styles.tierLabel, color: t.textSecondary }}>Active plan</span>
-          <span style={{ ...styles.tierPill, background: TIER_STYLES[user.tier]?.bg, color: TIER_STYLES[user.tier]?.text }}>
-            {user.tier}
-          </span>
-          <span style={{ ...styles.tierHint, color: t.textSecondary }}>
-            {user.tier === "Growth"     && "Upgrade to Pro to unlock customer, invoice and additional charts"}
-            {user.tier === "Pro"        && "Upgrade to Enterprise to unlock transaction analytics"}
-            {user.tier === "Enterprise" && "Full access enabled"}
-          </span>
-        </div>
-      )}
+      {/* Tier shown in sidebar */}
 
       {/* KPI Cards */}
       <div style={styles.kpiGrid}>
-        {KPI_DATA.map((kpi) => (
+        {kpiCards.map((kpi) => (
           <div key={kpi.label} style={{ ...styles.kpiCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
             <div style={styles.kpiTop}>
               <span style={{ ...styles.kpiLabel, color: t.textSecondary }}>{kpi.label}</span>
-              <span style={{
-                ...styles.kpiChange,
-                background: kpi.positive ? t.successLight : t.dangerLight,
-                color:      kpi.positive ? t.success      : t.danger,
-              }}>
-                {kpi.change}
-              </span>
             </div>
-            <div style={{ ...styles.kpiValue, color: t.textPrimary }}>{kpi.value}</div>
+            <div style={{ ...styles.kpiValue, color: t.textPrimary }}>
+              {loading ? "—" : kpi.value}
+            </div>
           </div>
         ))}
       </div>
 
+      {/* Charts */}
       <div style={styles.chartsGrid}>
 
-        {/* Revenue — all tiers */}
+        {/* Revenue by territory — Pro+ */}
+        <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+          <div style={styles.chartHeader}>
+            <div>
+              <div style={{ ...styles.chartTitle, color: t.textPrimary }}>Revenue by Territory</div>
+              <div style={{ ...styles.chartSub, color: t.textSecondary }}>Revenue grouped by country and segment</div>
+            </div>
+            <span style={{ ...styles.planPill, background: "#dbeafe", color: "#1d4ed8" }}>Pro+</span>
+          </div>
+          {hasFeature("Pro") ? (
+            <TerritoryChart data={territory} isDark={isDark} t={t} />
+          ) : (
+            <LockedChart tier="Pro" onUpgrade={openLoginModel} t={t} />
+          )}
+        </div>
+
+        {/* Mock revenue trend — all tiers */}
         <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
           <div style={styles.chartHeader}>
             <div>
               <div style={{ ...styles.chartTitle, color: t.textPrimary }}>Revenue Trend</div>
-              <div style={{ ...styles.chartSub,   color: t.textSecondary }}>Monthly revenue this year</div>
+              <div style={{ ...styles.chartSub, color: t.textSecondary }}>Monthly revenue this year</div>
             </div>
             <span style={{ ...styles.planPill, background: t.successLight, color: t.success }}>All Plans</span>
           </div>
@@ -91,97 +177,54 @@ function Overview() {
             xFormat={(d) => ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d]}
             xDomain={[0.5, 12.5]}
             yLabel="Revenue (€)"
-            height={180}
-            tier={tier}
+            height={200}
+            tier={user?.tier || "GROWTH"}
           />
-          <div style={{ ...styles.chartFooter, color: t.textSecondary }}>
-            YTD — <span style={{ color: t.textPrimary, fontWeight: 600 }}>€414,000</span>
-          </div>
         </div>
 
-        {/* New customers — Pro+ tier */}
-        <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-          <div style={styles.chartHeader}>
-            <div>
-              <div style={{ ...styles.chartTitle, color: t.textPrimary }}>New Customers</div>
-              <div style={{ ...styles.chartSub,   color: t.textSecondary }}>Monthly Gain</div>
-            </div>
-            <span style={{ ...styles.planPill, background: "#dbeafe", color: "#1d4ed8" }}>Pro+</span>
-          </div>
-          {hasFeature("Pro") ? (
-            <>
-              <ChartToggle
-                data={MOCK_CUSTOMERS_MONTHLY}
-                xKey="monthNum"
-                yKey="count"
-                xFormat={(d) => ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d]}
-                xDomain={[0.5, 12.5]}
-                yLabel="Customers"
-                height={180}
-                tier={tier}
-              />
-              <div style={{ ...styles.chartFooter, color: t.textSecondary }}>
-                Total — <span style={{ color: t.textPrimary, fontWeight: 600 }}>856 customers</span>
-              </div>
-            </>
-          ) : (
-            <LockedChart tier="Pro" onUpgrade={openLoginModel} t={t} />
-          )}
-        </div>
-
-        {/* Invoice revenue — Pro+ tier */}
+        {/* Invoice revenue — Pro+ */}
         <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
           <div style={styles.chartHeader}>
             <div>
               <div style={{ ...styles.chartTitle, color: t.textPrimary }}>Invoice Revenue</div>
-              <div style={{ ...styles.chartSub,   color: t.textSecondary }}>Monthly paid invoices</div>
+              <div style={{ ...styles.chartSub, color: t.textSecondary }}>Monthly paid invoices</div>
             </div>
             <span style={{ ...styles.planPill, background: "#dbeafe", color: "#1d4ed8" }}>Pro+</span>
           </div>
           {hasFeature("Pro") ? (
-            <>
-              <ChartToggle
-                data={MOCK_INVOICE_REVENUE}
-                xKey="monthNum"
-                yKey="amount"
-                xFormat={(d) => ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d]}
-                xDomain={[0.5, 12.5]}
-                yLabel="Amount (€)"
-                height={180}
-                tier={tier}
-              />
-              <div style={{ ...styles.chartFooter, color: t.textSecondary }}>
-                Overdue — <span style={{ color: t.danger, fontWeight: 600 }}>2 invoices</span>
-              </div>
-            </>
+            <ChartToggle
+              data={MOCK_INVOICE_REVENUE}
+              xKey="monthNum"
+              yKey="amount"
+              xFormat={(d) => ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d]}
+              xDomain={[0.5, 12.5]}
+              yLabel="Amount (€)"
+              height={200}
+              tier={user?.tier || "GROWTH"}
+            />
           ) : (
             <LockedChart tier="Pro" onUpgrade={openLoginModel} t={t} />
           )}
         </div>
 
-        {/* Transaction volume — Enterprise tier */}
+        {/* Transaction volume — Enterprise */}
         <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
           <div style={styles.chartHeader}>
             <div>
               <div style={{ ...styles.chartTitle, color: t.textPrimary }}>Transaction Volume</div>
-              <div style={{ ...styles.chartSub,   color: t.textSecondary }}>Daily transaction count</div>
+              <div style={{ ...styles.chartSub, color: t.textSecondary }}>Daily transaction count</div>
             </div>
             <span style={{ ...styles.planPill, background: "#ede9fe", color: "#7c3aed" }}>Enterprise</span>
           </div>
           {hasFeature("Enterprise") ? (
-            <>
-              <ChartToggle
-                data={MOCK_TRANSACTION_VOLUME}
-                xKey="day"
-                yKey="count"
-                yLabel="Count"
-                height={180}
-                tier={tier}
-              />
-              <div style={{ ...styles.chartFooter, color: t.textSecondary }}>
-                Success rate — <span style={{ color: t.success, fontWeight: 600 }}>91.7%</span>
-              </div>
-            </>
+            <ChartToggle
+              data={MOCK_TRANSACTION_VOLUME}
+              xKey="day"
+              yKey="count"
+              yLabel="Count"
+              height={200}
+              tier={user?.tier || "GROWTH"}
+            />
           ) : (
             <LockedChart tier="Enterprise" onUpgrade={openLoginModel} t={t} />
           )}
@@ -189,54 +232,55 @@ function Overview() {
 
       </div>
 
-      {/* Recent transactions */}
+      {/* Recent Sales Table */}
       <div style={{ ...styles.tableCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
         <div style={styles.tableHeader}>
           <div>
             <div style={{ ...styles.chartTitle, color: t.textPrimary }}>
-              Recent Transactions
+              Recent Sales
               {user && !hasFeature("Pro") && (
                 <span style={{ ...styles.limitedTag, color: t.textSecondary }}> — limited preview</span>
               )}
             </div>
-            <div style={{ ...styles.chartSub, color: t.textSecondary }}>Latest activity across all accounts</div>
+            <div style={{ ...styles.chartSub, color: t.textSecondary }}>Latest sales activity</div>
           </div>
           {user && !hasFeature("Pro") && (
             <button style={styles.upgradeBtn} onClick={openLoginModel}>Upgrade to Pro</button>
           )}
         </div>
 
-        <div style={styles.tableWrapper}>
-          <table style={styles.table}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${t.border}` }}>
-                {["ID","Date","Customer","Amount","Type","Status"].map((h) => (
-                  <th key={h} style={{ ...styles.th, color: t.textSecondary }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {visibleTransactions.map((tx) => (
-                <tr key={tx.id} style={{ borderBottom: `1px solid ${t.borderLight}` }}>
-                  <td style={{ ...styles.td, color: t.textSecondary, fontFamily: "monospace" }}>#{tx.id}</td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>{new Date(tx.date).toLocaleDateString()}</td>
-                  <td style={{ ...styles.td, color: t.textPrimary,   fontWeight: 500 }}>{tx.customer}</td>
-                  <td style={{ ...styles.td, color: t.textPrimary,   fontWeight: 600 }}>€{tx.amount.toLocaleString()}</td>
-                  <td style={{ ...styles.td }}>
-                    <span style={{ ...styles.typeBadge, background: getTypeBg(tx.type), color: getTypeColor(tx.type) }}>
-                      {tx.type}
-                    </span>
-                  </td>
-                  <td style={{ ...styles.td }}>
-                    <span style={{ ...styles.statusBadge, background: getStatusBg(tx.status), color: "#fff" }}>
-                      {tx.status}
-                    </span>
-                  </td>
+        {loading ? (
+          <div style={{ ...styles.stateBox, color: t.textSecondary }}>Loading...</div>
+        ) : (
+          <div style={styles.tableWrapper}>
+            <table style={styles.table}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+                  {["Order No.","Order Date","Amount","Quantity","Price"].map((h) => (
+                    <th key={h} style={{ ...styles.th, color: t.textSecondary }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {visibleSales.map((s, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${t.borderLight}` }}>
+                    <td style={{ ...styles.td, color: t.textSecondary, fontFamily: "monospace" }}>
+                      {s.salesOrdNum}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{s.salesOrderDt}</td>
+                    <td style={{ ...styles.td, color: t.textPrimary, fontWeight: 600 }}>
+                      €{s.salesSales?.toLocaleString() || "—"}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{s.salesQuantity}</td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>
+                      €{s.salesPrice?.toLocaleString() || "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {user && !hasFeature("Pro") && (
           <div style={{
@@ -252,7 +296,76 @@ function Overview() {
   );
 }
 
-// Chart placeholder
+// Territory chart 
+// Uses Observable Plot 
+function TerritoryChart({ data, isDark, t }) {
+  const chartRef = useRef(null);
+
+  useEffect(() => {
+    if (!chartRef.current || !data || data.length === 0) return;
+    chartRef.current.innerHTML = "";
+
+    const Plot = window.Plot;
+
+    // Map territory data to chart format
+    // GET /api/sales/territory returns: { country, clientSegment, totalRevenue, orderCount, avgOrderValue }
+    const chartData = data.map(d => ({
+      label:   `${d.country}`,
+      revenue: d.totalRevenue || 0,
+    }));
+
+    const accent = isDark ? "#7c9fff" : "#1a2a6c";
+
+    import("@observablehq/plot").then((Plot) => {
+      const plot = Plot.plot({
+        width:        chartRef.current.offsetWidth || 400,
+        height:       200,
+        marginLeft:   100,
+        marginBottom: 30,
+        marginTop:    8,
+        marginRight:  16,
+        marks: [
+          Plot.barX(chartData, {
+            x:    "revenue",
+            y:    "label",
+            fill: accent,
+            rx:   3,
+            sort: { y: "-x" },
+          }),
+          Plot.ruleX([0]),
+        ],
+        x: {
+          label:       "Revenue (€)",
+          grid:        true,
+          tickFormat:  d => `€${(d/1000).toFixed(0)}K`,
+          tickPadding: 6,
+        },
+        y: { label: null },
+        style: {
+          fontSize:   "11px",
+          color:      isDark ? "#94a3b8" : "#555",
+          background: "transparent",
+        },
+      });
+      chartRef.current.appendChild(plot);
+    });
+
+    return () => {
+      if (chartRef.current) chartRef.current.innerHTML = "";
+    };
+  }, [data, isDark]);
+
+  if (!data || data.length === 0) {
+    return (
+      <div style={{ padding: "40px", textAlign: "center", fontSize: "12px", color: t.textSecondary }}>
+        No territory data available
+      </div>
+    );
+  }
+
+  return <div ref={chartRef} style={{ width: "100%", marginTop: "8px" }} />;
+}
+
 function LockedChart({ tier, onUpgrade, t }) {
   const colors = { Pro: "#1d4ed8", Enterprise: "#7c3aed" };
   const bgs    = { Pro: "#dbeafe",  Enterprise: "#ede9fe"  };
@@ -271,15 +384,7 @@ function LockedChart({ tier, onUpgrade, t }) {
   );
 }
 
-// MOCK DATA
-// TODO: Remove mock data once API endpoint is connected
-const KPI_DATA = [
-  { label: "Total Revenue",       value: "€414K", change: "+12.4%",   positive: true  },
-  { label: "Active Customers",    value: "742",   change: "+8.2%",    positive: true  },
-  { label: "Open Invoices",       value: "13",    change: "2 overdue", positive: false },
-  { label: "Transactions (MTD)",  value: "128",   change: "+15.3%",   positive: true  },
-];
-
+// Mock data — will remove when all endpoints are connected
 const MOCK_REVENUE = [
   { monthNum: 1,  revenue: 28500 }, { monthNum: 2,  revenue: 32000 },
   { monthNum: 3,  revenue: 29800 }, { monthNum: 4,  revenue: 35200 },
@@ -287,13 +392,6 @@ const MOCK_REVENUE = [
   { monthNum: 7,  revenue: 34200 }, { monthNum: 8,  revenue: 36800 },
   { monthNum: 9,  revenue: 33500 }, { monthNum: 10, revenue: 37200 },
   { monthNum: 11, revenue: 35800 }, { monthNum: 12, revenue: 41500 },
-];
-
-const MOCK_CUSTOMERS_MONTHLY = [
-  { monthNum: 1, count: 42 }, { monthNum: 2, count: 38 }, { monthNum: 3, count: 55 },
-  { monthNum: 4, count: 49 }, { monthNum: 5, count: 61 }, { monthNum: 6, count: 58 },
-  { monthNum: 7, count: 72 }, { monthNum: 8, count: 65 }, { monthNum: 9, count: 70 },
-  { monthNum: 10, count: 83 }, { monthNum: 11, count: 78 }, { monthNum: 12, count: 90 },
 ];
 
 const MOCK_INVOICE_REVENUE = [
@@ -311,24 +409,12 @@ const MOCK_TRANSACTION_VOLUME = [
   { day: 13, count: 23 }, { day: 14, count: 27 }, { day: 15, count: 32 },
 ];
 
-const MOCK_RECENT_TRANSACTIONS = [
-  { id: 1001, date: "2024-01-26", customer: "Acme Corp",       amount: 4100, type: "Sale",   status: "Success" },
-  { id: 1002, date: "2024-01-25", customer: "Beta Ltd",        amount: 2900, type: "Sale",   status: "Success" },
-  { id: 1003, date: "2024-01-25", customer: "Gamma Inc",       amount: 650,  type: "Refund", status: "Success" },
-  { id: 1004, date: "2024-01-24", customer: "Delta Co",        amount: 3600, type: "Sale",   status: "Pending" },
-  { id: 1005, date: "2024-01-24", customer: "Epsilon LLC",     amount: 900,  type: "Return", status: "Success" },
-  { id: 1006, date: "2024-01-23", customer: "Zeta Industries", amount: 2100, type: "Sale",   status: "Success" },
-  { id: 1007, date: "2024-01-23", customer: "Theta Systems",   amount: 1800, type: "Sale",   status: "Failed"  },
-  { id: 1008, date: "2024-01-22", customer: "Lambda Corp",     amount: 3400, type: "Sale",   status: "Success" },
-];
-
 const TIER_STYLES = {
   Growth:     { bg: "#dcfce7", text: "#16a34a" },
   Pro:        { bg: "#dbeafe", text: "#1d4ed8" },
   Enterprise: { bg: "#ede9fe", text: "#7c3aed" },
 };
 
-// THEME
 const light = {
   textPrimary:   "#1a2a6c", textSecondary: "#555",
   cardBg:        "#ffffff", border: "#e0e4ef", borderLight: "#f0f2f7",
@@ -337,6 +423,7 @@ const light = {
   warning:       "#f59e0b", warningLight: "#fef3c7",
   danger:        "#dc2626", dangerLight: "#fee2e2",
 };
+
 const dark = {
   textPrimary:   "#e2e8f0", textSecondary: "#94a3b8",
   cardBg:        "#1e293b", border: "#334155", borderLight: "#1e293b",
@@ -346,7 +433,6 @@ const dark = {
   danger:        "#ef4444", dangerLight: "#7f1d1d",
 };
 
-// STYLING
 const styles = {
   wrapper: {
     display:       "flex",
@@ -419,12 +505,6 @@ const styles = {
     fontSize:   "12px",
     fontWeight: "500",
   },
-  kpiChange: {
-    fontSize:     "10px",
-    fontWeight:   "600",
-    padding:      "2px 7px",
-    borderRadius: "20px",
-  },
   kpiValue: {
     fontSize:   "26px",
     fontWeight: "700",
@@ -452,10 +532,6 @@ const styles = {
   chartSub: {
     fontSize: "11px",
   },
-  chartFooter: {
-    fontSize:  "11px",
-    marginTop: "6px",
-  },
   planPill: {
     fontSize:     "10px",
     fontWeight:   "700",
@@ -470,7 +546,7 @@ const styles = {
     justifyContent: "center",
     gap:            "10px",
     padding:        "28px 16px",
-    minHeight:      "180px",
+    minHeight:      "200px",
   },
   lockedBadge: {
     padding:      "4px 12px",
@@ -518,6 +594,11 @@ const styles = {
     fontWeight:   "600",
     cursor:       "pointer",
   },
+  stateBox: {
+    padding:   "40px",
+    textAlign: "center",
+    fontSize:  "13px",
+  },
   tableWrapper: {
     overflowX: "auto",
   },
@@ -536,19 +617,6 @@ const styles = {
   td: {
     padding:  "11px 14px",
     fontSize: "13px",
-  },
-  typeBadge: {
-    padding:      "3px 9px",
-    borderRadius: "20px",
-    fontSize:     "11px",
-    fontWeight:   "600",
-  },
-  statusBadge: {
-    padding:      "3px 9px",
-    borderRadius: "20px",
-    fontSize:     "11px",
-    fontWeight:   "600",
-    color:        "#fff",
   },
   tableGradient: {
     position: "absolute",

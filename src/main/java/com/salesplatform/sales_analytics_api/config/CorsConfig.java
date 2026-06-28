@@ -19,7 +19,9 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addMapping("/api/**") // mapped to api routes
                 .allowedOrigins("http://localhost:5173") // allowed requests, if we use observable later we add this here too
                 .allowedMethods("GET", "POST", "PUT", "DELETE") // allow basic methods
-                .allowedHeaders("*");
+                .allowedHeaders("*")
+                .allowCredentials(false)
+                .exposedHeaders("Authorization");
     }
 }
 
