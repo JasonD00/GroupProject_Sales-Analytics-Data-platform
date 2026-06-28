@@ -16,6 +16,7 @@ public class TerritoryService {
 
     private final TerritoryRepository territoryRepository;
 
+    // Fetch all territories
     public List<TerritoryResponse> getAllTerritories() {
         return territoryRepository.findAll()
                 .stream()
@@ -23,6 +24,7 @@ public class TerritoryService {
                 .collect(Collectors.toList());
     }
 
+    // Fetch territories by id
     public TerritoryResponse getTerritoryById(Long territoryKey) {
         Territory territory = territoryRepository.findById(territoryKey)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -30,6 +32,7 @@ public class TerritoryService {
         return mapToResponse(territory);
     }
 
+    // Map entity to DTO (Territory)
     private TerritoryResponse mapToResponse(Territory territory) {
            return TerritoryResponse.builder()
                 .territoryKey(territory.getTerritoryKey())

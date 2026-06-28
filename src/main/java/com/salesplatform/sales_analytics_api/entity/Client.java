@@ -13,6 +13,11 @@ import java.time.LocalDate;
     Source ---> Target Mapping = gold layer
     This entity represents the view = dim.client in the gold layer of the db
 
+    @Entity Male the class a JPA entity
+    @Table Map entity to a db table or view
+    @Id define the primary key
+    @Column map field to column
+
     Previous mock data has been changed to represent the complete DB
  */
 

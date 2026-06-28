@@ -12,6 +12,11 @@ import java.time.LocalDate;
             User Entity
 
             Matches the dbo.users table in the DB using Flyway Migration
+
+            @Entity Male the class a JPA entity
+            @Table Map entity to a db table or view
+            @Id define the primary key
+            @Column map field to column
      */
 
 @Entity

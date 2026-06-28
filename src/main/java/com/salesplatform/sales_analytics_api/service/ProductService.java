@@ -1,6 +1,7 @@
 package com.salesplatform.sales_analytics_api.service;
 
 import com.salesplatform.sales_analytics_api.dto.ProductResponse;
+import com.salesplatform.sales_analytics_api.dto.ProductSummaryResponse;
 import com.salesplatform.sales_analytics_api.entity.Product;
 import com.salesplatform.sales_analytics_api.repository.ProductRepository;
 import com.salesplatform.sales_analytics_api.exception.ResourceNotFoundException;
@@ -42,6 +43,24 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Product not found with key: " + productKey));
         return mapToResponse(product);
+    }
+
+    // Fetch aggregated product summary
+    // Joins dim_products with fact_sales for sold amount and total revenue
+    public List<ProductSummaryResponse> getProductSummary() {
+        return productRepository.findProductSummary()
+                .stream()
+                .map(row -> ProductSummaryResponse.builder()
+                        .productId(((Number) row[0]).intValue())
+                        .productName((String) row[1])
+                        .category((String) row[2])
+                        .subcategory((String) row[3])
+                        .cost(((Number) row[4]).intValue())
+                        .productType((String) row[5])
+                        .soldAmount(((Number) row[6]).longValue())
+                        .totalRevenue(((Number) row[7]).doubleValue())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     // Maps a Product entity --> ProductResponse DTO

@@ -1,10 +1,13 @@
 package com.salesplatform.sales_analytics_api.controller;
 
+import com.salesplatform.sales_analytics_api.dto.SalesByTerritoryResponse;
 import com.salesplatform.sales_analytics_api.dto.SalesResponse;
 import com.salesplatform.sales_analytics_api.service.SalesService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 import java.util.List;
 
 /*
@@ -52,6 +55,27 @@ public class SaleController {
     @GetMapping("/total-revenue")
     public ResponseEntity<Double> getTotalRevenue() {
         return ResponseEntity.ok(salesService.getTotalRevenue());
+    }
+
+    // GET /api/sales/product/{productKey}
+    @GetMapping("/product/{productKey}")
+    public ResponseEntity<List<SalesResponse>> getSalesByProduct(@PathVariable Long productKey) {
+        return ResponseEntity.ok(salesService.getSalesByProduct(productKey));
+    }
+
+    // GET /api/sales/dateStart to end
+    @GetMapping("/date")
+    public ResponseEntity<List<SalesResponse>> getSalesByDateRange(
+            @RequestParam LocalDate start,
+            @RequestParam LocalDate end) {
+        return ResponseEntity.ok(salesService.getSalesByDateRange(start, end));
+    }
+
+    // GET /api/sales/territory
+    // Returns aggregated sales data grouped by country and segment
+    @GetMapping("/territory")
+    public ResponseEntity<List<SalesByTerritoryResponse>> getSalesByTerritory() {
+        return ResponseEntity.ok(salesService.getSalesByTerritory());
     }
 
 }
