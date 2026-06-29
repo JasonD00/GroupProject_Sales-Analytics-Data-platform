@@ -1,7 +1,19 @@
 /*
-  Overview:
-  Shows a switchable revenue trend chart, bar charts for sales by rep and by region and a team performance
-  table that compares each reps sales against their target
+  Endpoints user:
+    GET /api/sales - full list of sales orders
+    GET /api/sales/total-revenue - single total revenue value
+
+  API field mapping (from backend):
+    orderNumber      - order reference
+    orderDate        - when order was placed
+    shipDate         - when order was shipped
+    dueDate          - when order is due
+    salesAmount      - total value of order
+    quantity         - units ordered
+    price            - price per unit
+    clientKey        - customer reference
+    productKey       - product reference
+    invoiceStatusKey - status reference
 */
 
 import { useState, useEffect, useRef } from "react";
@@ -11,247 +23,393 @@ import * as Plot from "@observablehq/plot";
 import ChartToggle from "../../components/ChartToggle";
 
 function Sales() {
-  const { isDark } = useTheme();
-  const { user }   = useAuth();
+  const { isDark }      = useTheme();
+  const { user, token } = useAuth();
   const t = isDark ? dark : light;
 
-  const repChartRef    = useRef(null);
-  const regionChartRef = useRef(null);
+  const statusChartRef = useRef(null);
 
-  const [dateRange,      setDateRange]      = useState("12months");
-  const [selectedRep,    setSelectedRep]    = useState("all");
-  const [selectedRegion, setSelectedRegion] = useState("all");
+  // API state
+  const [sales, setSales] = useState([]);
+  const [totalRevenue, setTotalRevenue] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const tier = user?.tier || "Growth";
+  // Filter state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [minAmount, setMinAmount] = useState("");
+  const [maxAmount, setMaxAmount] = useState("");
+  const [sortBy, setSortBy] = useState("date");
 
-  // Sales by rep
+  // Auth header
+  const authHeader = {
+    "Authorization": `Bearer ${token}`,
+    "Content-Type":  "application/json",
+  };
+
   useEffect(() => {
-    if (!repChartRef.current) return;
-    repChartRef.current.innerHTML = "";
-    const accent = isDark ? "#7c9fff" : "#1a2a6c";
+    if (!token) return;
+
+    Promise.all([
+      fetch("http://localhost:8080/api/sales", { headers: authHeader }),
+      fetch("http://localhost:8080/api/sales/total-revenue", { headers: authHeader }),
+    ])
+      .then(async ([salesRes, revenueRes]) => {
+        if (!salesRes.ok) throw new Error("Failed to fetch sales data");
+
+        const salesData   = await salesRes.json();
+        const revenueData = revenueRes.ok ? await revenueRes.json() : null;
+
+        setSales(salesData);
+        setTotalRevenue(revenueData);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  // Build monthly revenue trend for ChartToggle
+  // Groups the sales by month of orderDate and sums the salesAmount
+  const monthlyRevenue = (() => {
+    const map = {};
+    sales.forEach((s) => {
+      if (!s.orderDate) return;
+      const month = new Date(s.orderDate).getMonth() + 1;
+      map[month] = (map[month] || 0) + (s.salesAmount || 0);
+    });
+    return Object.entries(map)
+      .map(([month, revenue]) => ({ monthNum: parseInt(month), revenue }))
+      .sort((a, b) => a.monthNum - b.monthNum);
+  })();
+
+  // Builds the status distribution for the bar chart
+  // Groups by their invoiceStatusKey and counts their orders
+  const statusDistribution = (() => {
+    const map = {};
+    sales.forEach((s) => {
+      const key = `Status ${s.invoiceStatusKey}`;
+      map[key] = (map[key] || 0) + 1;
+    });
+    return Object.entries(map).map(([status, count]) => ({ status, count }));
+  })();
+
+  // Status distribution chart
+  useEffect(() => {
+    if (!statusChartRef.current || statusDistribution.length === 0) return;
+    statusChartRef.current.innerHTML = "";
+
     const plot = Plot.plot({
-      width:        repChartRef.current.offsetWidth || 400,
-      height:       180,
-      marginLeft:   110,
-      marginBottom: 30,
+      width:        statusChartRef.current.offsetWidth || 400,
+      height:       200,
+      marginLeft:   80,
+      marginBottom: 38,
       marginTop:    8,
+      marginRight:  16,
       marks: [
-        Plot.barX(MOCK_SALES_BY_REP, {
-          x: "sales", y: "name",
-          fill:  accent,
-          rx:    3,
+        Plot.barX(statusDistribution, {
+          x:    "count",
+          y:    "status",
+          fill: isDark ? "#7c9fff" : "#1a2a6c",
+          rx:   3,
           sort: { y: "-x" },
         }),
-        Plot.text(MOCK_SALES_BY_REP, {
-          x: "sales", y: "name",
-          text: (d) => `€${(d.sales / 1000).toFixed(0)}K`,
-          dx:   6,
-          fill: isDark ? "#e2e8f0" : "#1a2a6c",
-          fontSize: "11px",
+        Plot.text(statusDistribution, {
+          x:          "count",
+          y:          "status",
+          text:       (d) => d.count,
+          dx:         8,
+          fill:       isDark ? "#e2e8f0" : "#1a2a6c",
+          fontSize:   "11px",
           fontWeight: "600",
         }),
         Plot.ruleX([0]),
       ],
-      x: { label: null, grid: true, tickFormat: (d) => `€${(d/1000).toFixed(0)}K` },
+      x: { label: "Orders", grid: true, tickPadding: 6 },
       y: { label: null },
-      style: { fontSize: "11px", color: t.textSecondary, background: "transparent" },
+      style: {
+        fontSize:   "11px",
+        color:      t.textSecondary,
+        background: "transparent",
+      },
     });
-    repChartRef.current.appendChild(plot);
-    return () => plot.remove();
-  }, [isDark]);
 
-  // Sales by region
-  useEffect(() => {
-    if (!regionChartRef.current) return;
-    regionChartRef.current.innerHTML = "";
-    const accent = isDark ? "#60a5fa" : "#3b82f6";
-    const plot = Plot.plot({
-      width:        regionChartRef.current.offsetWidth || 400,
-      height:       140,
-      marginLeft:   110,
-      marginBottom: 30,
-      marginTop:    8,
-      marks: [
-        Plot.barX(MOCK_SALES_BY_REGION, {
-          x: "sales", y: "name",
-          fill:  accent,
-          rx:    3,
-          sort: { y: "-x" },
-        }),
-        Plot.text(MOCK_SALES_BY_REGION, {
-          x: "sales", y: "name",
-          text: (d) => `€${(d.sales / 1000).toFixed(0)}K`,
-          dx:   6,
-          fill: isDark ? "#e2e8f0" : "#1a2a6c",
-          fontSize: "11px",
-          fontWeight: "600",
-        }),
-        Plot.ruleX([0]),
-      ],
-      x: { label: null, grid: true, tickFormat: (d) => `€${(d/1000).toFixed(0)}K` },
-      y: { label: null },
-      style: { fontSize: "11px", color: t.textSecondary, background: "transparent" },
-    });
-    regionChartRef.current.appendChild(plot);
+    statusChartRef.current.appendChild(plot);
     return () => plot.remove();
-  }, [isDark]);
+  }, [isDark, sales]);
+
+  // Filter + sort
+  let filtered = sales.filter((s) => {
+    const matchSearch = s.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchFrom   = !dateFrom || new Date(s.orderDate) >= new Date(dateFrom);
+    const matchTo     = !dateTo   || new Date(s.orderDate) <= new Date(dateTo);
+    const matchMin    = !minAmount || s.salesAmount >= parseFloat(minAmount);
+    const matchMax    = !maxAmount || s.salesAmount <= parseFloat(maxAmount);
+    return matchSearch && matchFrom && matchTo && matchMin && matchMax;
+  });
+
+  if (sortBy === "date")    filtered.sort((a, b) => new Date(b.orderDate)   - new Date(a.orderDate));
+  if (sortBy === "amount")  filtered.sort((a, b) => b.salesAmount           - a.salesAmount);
+  if (sortBy === "qty")     filtered.sort((a, b) => b.quantity              - a.quantity);
+  if (sortBy === "due")     filtered.sort((a, b) => new Date(a.dueDate)     - new Date(b.dueDate));
+
+  // KPI values
+  const totalOrders   = sales.length;
+  const totalQty      = sales.reduce((s, o) => s + (o.quantity    || 0), 0);
+  const totalSales    = sales.reduce((s, o) => s + (o.salesAmount || 0), 0);
+  const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+
+  // Fulfilment — avg days it takes an order to ship
+  const avgFulfilment = (() => {
+    const diffs = sales
+      .filter(s => s.orderDate && s.shipDate)
+      .map(s => Math.floor((new Date(s.shipDate) - new Date(s.orderDate)) / 86400000));
+    return diffs.length > 0
+      ? (diffs.reduce((a, b) => a + b, 0) / diffs.length).toFixed(1)
+      : "—";
+  })();
+
+  if (!user) {
+    return (
+      <div style={{ ...styles.stateBox, color: t.textSecondary }}>
+        Please sign in to view sales data.
+      </div>
+    );
+  }
 
   return (
     <div style={styles.wrapper}>
 
+      {/* Summary Cards */}
+      <div style={styles.summaryGrid}>
+        {[
+          { label: "Total Orders",     value: loading ? "—" : totalOrders.toLocaleString(),              accent: t.accentLight  },
+          { label: "Total Revenue",    value: loading ? "—" : `€${(totalSales/1000).toFixed(1)}K`,       accent: t.successLight },
+          { label: "Avg Order Value",  value: loading ? "—" : `€${avgOrderValue.toFixed(0)}`,            accent: t.accentLight  },
+          { label: "Avg Ship Time",    value: loading ? "—" : `${avgFulfilment} days`,                   accent: t.warningLight },
+        ].map((card) => (
+          <div
+            key={card.label}
+            style={{
+              ...styles.summaryCard,
+              background: t.cardBg,
+              border:     `1px solid ${t.border}`,
+            }}
+          >
+            <div style={{ ...styles.summaryAccent, background: card.accent }} />
+            <div>
+              <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>{card.label}</div>
+              <div style={{ ...styles.summaryValue, color: t.textPrimary }}>{card.value}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts */}
+      <div style={styles.chartsGrid}>
+
+        {/* Revenue trend — switchable */}
+        <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+          <div style={styles.chartHeader}>
+            <div>
+              <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Revenue Trend</h3>
+              <p style={{ ...styles.chartSub, color: t.textSecondary }}>Monthly revenue from orders</p>
+            </div>
+            {totalRevenue != null && (
+              <div style={{ ...styles.totalPill, background: t.accentLight, color: t.accent }}>
+                Total: €{(totalRevenue/1000).toFixed(0)}K
+              </div>
+            )}
+          </div>
+          {monthlyRevenue.length > 0 ? (
+            <ChartToggle
+              data={monthlyRevenue}
+              xKey="monthNum"
+              yKey="revenue"
+              xFormat={(d) => ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d]}
+              xDomain={[0.5, 12.5]}
+              yLabel="Revenue (€)"
+              height={240}
+              tier={user?.tier || "GROWTH"}
+            />
+          ) : (
+            <div style={{ ...styles.stateBox, color: t.textSecondary }}>
+              {loading ? "Loading..." : "No data"}
+            </div>
+          )}
+        </div>
+
+        {/* Orders by status */}
+        <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Orders by Status</h3>
+          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Order count per invoice status</p>
+          <div ref={statusChartRef} style={{ width: "100%", marginTop: "12px" }} />
+        </div>
+      </div>
+
       {/* Filters */}
       <div style={{ ...styles.filterBar, background: t.cardBg, border: `1px solid ${t.border}` }}>
-        <div style={styles.filterGroup}>
-          <label style={{ ...styles.filterLabel, color: t.textSecondary }}>Date Range</label>
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
-          >
-            <option value="3months">Last 3 Months</option>
-            <option value="6months">Last 6 Months</option>
-            <option value="12months">Last 12 Months</option>
-            <option value="ytd">Year to Date</option>
-          </select>
-        </div>
-        <div style={styles.filterGroup}>
-          <label style={{ ...styles.filterLabel, color: t.textSecondary }}>Sales Rep</label>
-          <select
-            value={selectedRep}
-            onChange={(e) => setSelectedRep(e.target.value)}
-            style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
-          >
-            <option value="all">All Reps</option>
-            <option value="john">John Smith</option>
-            <option value="sarah">Sarah Johnson</option>
-            <option value="michael">Michael Chen</option>
-            <option value="emily">Emily Davis</option>
-          </select>
-        </div>
-        <div style={styles.filterGroup}>
-          <label style={{ ...styles.filterLabel, color: t.textSecondary }}>Region</label>
-          <select
-            value={selectedRegion}
-            onChange={(e) => setSelectedRegion(e.target.value)}
-            style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
-          >
-            <option value="all">All Regions</option>
-            <option value="na">North America</option>
-            <option value="eu">Europe</option>
-            <option value="asia">Asia</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Switchable revenue trend chart */}
-      <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-        <div style={styles.chartHeader}>
-          <div>
-            <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Revenue Trend</h3>
-            <p style={{ ...styles.chartSub, color: t.textSecondary }}>Monthly revenue over selected period</p>
-          </div>
-          <div style={{ ...styles.totalPill, background: t.accentLight, color: t.accent }}>
-            Total: €414K
-          </div>
-        </div>
-        <ChartToggle
-          data={MOCK_REVENUE}
-          xKey="monthNum"
-          yKey="revenue"
-          xFormat={(d) => ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d]}
-          xDomain={[0.5, 12.5]}
-          yLabel="Revenue (€)"
-          height={280}
-          tier={tier}
+        <input
+          type="text"
+          placeholder="Search order number..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            ...styles.searchInput,
+            background: t.inputBg,
+            border:     `1px solid ${t.border}`,
+            color:      t.textPrimary,
+          }}
         />
+        <div style={styles.filterGroup}>
+          <label style={{ ...styles.filterLabel, color: t.textSecondary }}>From</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            style={{
+              ...styles.dateInput,
+              background: t.inputBg,
+              border:     `1px solid ${t.border}`,
+              color:      t.textPrimary,
+            }}
+          />
+        </div>
+        <div style={styles.filterGroup}>
+          <label style={{ ...styles.filterLabel, color: t.textSecondary }}>To</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            style={{
+              ...styles.dateInput,
+              background: t.inputBg,
+              border:     `1px solid ${t.border}`,
+              color:      t.textPrimary,
+            }}
+          />
+        </div>
+        <input
+          type="number"
+          placeholder="Min €"
+          value={minAmount}
+          onChange={(e) => setMinAmount(e.target.value)}
+          style={{
+            ...styles.amountInput,
+            background: t.inputBg,
+            border:     `1px solid ${t.border}`,
+            color:      t.textPrimary,
+          }}
+        />
+        <input
+          type="number"
+          placeholder="Max €"
+          value={maxAmount}
+          onChange={(e) => setMaxAmount(e.target.value)}
+          style={{
+            ...styles.amountInput,
+            background: t.inputBg,
+            border:     `1px solid ${t.border}`,
+            color:      t.textPrimary,
+          }}
+        />
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
+        >
+          <option value="date">Sort by Order Date</option>
+          <option value="amount">Sort by Amount</option>
+          <option value="qty">Sort by Quantity</option>
+          <option value="due">Sort by Due Date</option>
+        </select>
+        <button
+          onClick={() => { setSearchTerm(""); setDateFrom(""); setDateTo(""); setMinAmount(""); setMaxAmount(""); }}
+          style={{ ...styles.clearBtn, color: t.textSecondary, border: `1px solid ${t.border}` }}
+        >
+          Clear
+        </button>
       </div>
 
-      {/* Sales by rep + region */}
-      <div style={styles.chartsRow}>
-        <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Sales by Rep</h3>
-          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Year to date performance</p>
-          <div ref={repChartRef} style={{ width: "100%", marginTop: "12px" }} />
-        </div>
-        <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Sales by Region</h3>
-          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Year to date performance</p>
-          <div ref={regionChartRef} style={{ width: "100%", marginTop: "12px" }} />
-        </div>
-      </div>
-
-      {/* Team performance table*/}
+      {/* Sales Table */}
       <div style={{ ...styles.tableCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-        <h3 style={{ ...styles.chartTitle, color: t.textPrimary, marginBottom: "4px" }}>Team Performance</h3>
-        <p style={{ ...styles.chartSub, color: t.textSecondary, marginBottom: "16px" }}>Individual rep breakdown</p>
-        <div style={styles.tableWrapper}>
-          <table style={styles.table}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${t.border}` }}>
-                {["Sales Rep", "Region", "Sales", "Deals", "Avg Deal", "Target", "% of Target"].map((h) => (
-                  <th key={h} style={{ ...styles.th, color: t.textSecondary }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {TEAM_PERFORMANCE.map((rep) => (
-                <tr key={rep.name} style={{ borderBottom: `1px solid ${t.borderLight}` }}>
-                  <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "500" }}>{rep.name}</td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>{rep.region}</td>
-                  <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "600" }}>€{rep.sales.toLocaleString()}</td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>{rep.deals}</td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>€{rep.avgDeal.toLocaleString()}</td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>€{rep.target.toLocaleString()}</td>
-                  <td style={{ ...styles.td }}>
-                    <span style={{
-                      ...styles.pctBadge,
-                      background: rep.percent >= 100 ? t.successLight : t.warningLight,
-                      color:      rep.percent >= 100 ? t.success      : t.warning,
-                    }}>
-                      {rep.percent}%
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={styles.tableHeader}>
+          <div>
+            <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Sales Orders</h3>
+            <p style={{ ...styles.chartSub, color: t.textSecondary }}>
+              {loading ? "Loading..." : `${filtered.length} of ${totalOrders} orders`}
+            </p>
+          </div>
         </div>
+
+        {loading && (
+          <div style={{ ...styles.stateBox, color: t.textSecondary }}>Loading sales data...</div>
+        )}
+        {error && !loading && (
+          <div style={{ ...styles.stateBox, color: t.danger }}>Error: {error}</div>
+        )}
+        {!loading && !error && filtered.length === 0 && (
+          <div style={{ ...styles.stateBox, color: t.textSecondary }}>No orders match your filters.</div>
+        )}
+
+        {!loading && !error && filtered.length > 0 && (
+          <div style={styles.tableWrapper}>
+            <table style={styles.table}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+                  {[
+                    "Order No.",
+                    "Order Date",
+                    "Ship Date",
+                    "Due Date",
+                    "Ship Time",
+                    "Quantity",
+                    "Price",
+                    "Sales Amount",
+                  ].map((h) => (
+                    <th key={h} style={{ ...styles.th, color: t.textSecondary }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((s) => {
+                  const shipDays = s.orderDate && s.shipDate
+                    ? Math.floor((new Date(s.shipDate) - new Date(s.orderDate)) / 86400000)
+                    : null;
+                  const isLate = s.dueDate && s.shipDate && new Date(s.shipDate) > new Date(s.dueDate);
+
+                  return (
+                    <tr key={s.orderNumber} style={{ borderBottom: `1px solid ${t.borderLight}` }}>
+                      <td style={{ ...styles.td, color: t.textSecondary, fontFamily: "monospace" }}>
+                        {s.orderNumber}
+                      </td>
+                      <td style={{ ...styles.td, color: t.textSecondary }}>{s.orderDate}</td>
+                      <td style={{ ...styles.td, color: isLate ? t.danger : t.textSecondary }}>
+                        {s.shipDate}
+                      </td>
+                      <td style={{ ...styles.td, color: t.textSecondary }}>{s.dueDate}</td>
+                      <td style={{ ...styles.td, color: t.textSecondary }}>
+                        {shipDays != null ? `${shipDays}d` : "—"}
+                      </td>
+                      <td style={{ ...styles.td, color: t.textSecondary }}>{s.quantity}</td>
+                      <td style={{ ...styles.td, color: t.textSecondary }}>
+                        €{s.price?.toLocaleString()}
+                      </td>
+                      <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "600" }}>
+                        €{s.salesAmount?.toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
     </div>
   );
 }
-
-// MOCK DATA
-// TODO: Remove once backend is connected — replace each with API fetch 
-const MOCK_REVENUE = [
-  { monthNum: 1,  revenue: 28500 }, { monthNum: 2,  revenue: 32000 },
-  { monthNum: 3,  revenue: 29800 }, { monthNum: 4,  revenue: 35200 },
-  { monthNum: 5,  revenue: 31500 }, { monthNum: 6,  revenue: 38000 },
-  { monthNum: 7,  revenue: 34200 }, { monthNum: 8,  revenue: 36800 },
-  { monthNum: 9,  revenue: 33500 }, { monthNum: 10, revenue: 37200 },
-  { monthNum: 11, revenue: 35800 }, { monthNum: 12, revenue: 41500 },
-];
-
-const MOCK_SALES_BY_REP = [
-  { name: "John Smith",    sales: 45000 },
-  { name: "Sarah Johnson", sales: 38500 },
-  { name: "Michael Chen",  sales: 42000 },
-  { name: "Emily Davis",   sales: 35200 },
-];
-
-const MOCK_SALES_BY_REGION = [
-  { name: "North America", sales: 52000 },
-  { name: "Europe",        sales: 48500 },
-  { name: "Asia",          sales: 42200 },
-];
-
-const TEAM_PERFORMANCE = [
-  { name: "John Smith",    region: "North America", sales: 45000, deals: 32, avgDeal: 1406, target: 40000, percent: 112 },
-  { name: "Sarah Johnson", region: "Europe",        sales: 38500, deals: 28, avgDeal: 1375, target: 35000, percent: 110 },
-  { name: "Michael Chen",  region: "Asia",          sales: 42000, deals: 30, avgDeal: 1400, target: 45000, percent: 93  },
-  { name: "Emily Davis",   region: "North America", sales: 35200, deals: 25, avgDeal: 1408, target: 40000, percent: 88  },
-];
 
 // THEME
 const light = {
@@ -267,6 +425,8 @@ const light = {
   successLight:  "#dcfce7",
   warning:       "#f59e0b",
   warningLight:  "#fef3c7",
+  danger:        "#dc2626",
+  dangerLight:   "#fee2e2",
 };
 
 const dark = {
@@ -282,6 +442,8 @@ const dark = {
   successLight:  "#064e3b",
   warning:       "#fbbf24",
   warningLight:  "#78350f",
+  danger:        "#ef4444",
+  dangerLight:   "#7f1d1d",
 };
 
 // STYLING
@@ -291,30 +453,36 @@ const styles = {
     flexDirection: "column",
     gap:           "20px",
   },
-  filterBar: {
-    padding:    "16px 20px",
-    borderRadius:"10px",
-    display:    "flex",
-    gap:        "24px",
-    flexWrap:   "wrap",
-    alignItems: "center",
+  summaryGrid: {
+    display:             "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap:                 "16px",
   },
-  filterGroup: {
-    display:    "flex",
-    alignItems: "center",
-    gap:        "8px",
+  summaryCard: {
+    padding:      "18px 20px",
+    borderRadius: "10px",
+    display:      "flex",
+    alignItems:   "center",
+    gap:          "14px",
   },
-  filterLabel: {
-    fontSize:   "12px",
-    fontWeight: "500",
-    whiteSpace: "nowrap",
+  summaryAccent: {
+    width:        "4px",
+    height:       "40px",
+    borderRadius: "4px",
+    flexShrink:   0,
   },
-  select: {
-    padding:      "7px 12px",
-    borderRadius: "6px",
-    fontSize:     "13px",
-    cursor:       "pointer",
-    outline:      "none",
+  summaryLabel: {
+    fontSize:     "12px",
+    marginBottom: "4px",
+  },
+  summaryValue: {
+    fontSize:   "24px",
+    fontWeight: "700",
+  },
+  chartsGrid: {
+    display:             "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",
+    gap:                 "16px",
   },
   chartCard: {
     padding:      "20px",
@@ -327,7 +495,7 @@ const styles = {
     marginBottom:   "4px",
   },
   chartTitle: {
-    margin:     "0 0 4px 0",
+    margin:     "0 0 2px 0",
     fontSize:   "14px",
     fontWeight: "600",
   },
@@ -342,14 +510,74 @@ const styles = {
     fontWeight:   "600",
     whiteSpace:   "nowrap",
   },
-  chartsRow: {
-    display:             "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
-    gap:                 "20px",
+  filterBar: {
+    padding:      "16px 20px",
+    borderRadius: "10px",
+    display:      "flex",
+    gap:          "10px",
+    flexWrap:     "wrap",
+    alignItems:   "center",
+  },
+  filterGroup: {
+    display:    "flex",
+    alignItems: "center",
+    gap:        "6px",
+  },
+  filterLabel: {
+    fontSize:   "12px",
+    fontWeight: "500",
+    whiteSpace: "nowrap",
+  },
+  searchInput: {
+    flex:         1,
+    minWidth:     "180px",
+    padding:      "8px 14px",
+    borderRadius: "6px",
+    fontSize:     "13px",
+    outline:      "none",
+  },
+  dateInput: {
+    padding:      "7px 10px",
+    borderRadius: "6px",
+    fontSize:     "13px",
+    outline:      "none",
+  },
+  amountInput: {
+    width:        "80px",
+    padding:      "8px 10px",
+    borderRadius: "6px",
+    fontSize:     "13px",
+    outline:      "none",
+  },
+  select: {
+    padding:      "8px 12px",
+    borderRadius: "6px",
+    fontSize:     "13px",
+    cursor:       "pointer",
+    outline:      "none",
+  },
+  clearBtn: {
+    padding:      "8px 14px",
+    borderRadius: "6px",
+    fontSize:     "12px",
+    cursor:       "pointer",
+    background:   "transparent",
+    fontWeight:   "500",
   },
   tableCard: {
     padding:      "20px",
     borderRadius: "10px",
+  },
+  tableHeader: {
+    display:        "flex",
+    justifyContent: "space-between",
+    alignItems:     "flex-start",
+    marginBottom:   "16px",
+  },
+  stateBox: {
+    padding:   "40px",
+    textAlign: "center",
+    fontSize:  "13px",
   },
   tableWrapper: {
     overflowX: "auto",
@@ -369,12 +597,6 @@ const styles = {
   td: {
     padding:  "11px 14px",
     fontSize: "13px",
-  },
-  pctBadge: {
-    padding:      "3px 9px",
-    borderRadius: "20px",
-    fontSize:     "11px",
-    fontWeight:   "600",
   },
 };
 
