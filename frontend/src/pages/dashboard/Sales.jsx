@@ -20,14 +20,14 @@ import { useState, useEffect, useRef } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import * as Plot from "@observablehq/plot";
-import ChartToggle from "../../components/ChartToggle";
 
 function Sales() {
-  const { isDark }      = useTheme();
+  const { isDark } = useTheme();
   const { user, token } = useAuth();
   const t = isDark ? dark : light;
 
   const statusChartRef = useRef(null);
+  const topOrdersChartRef = useRef(null);
 
   // API state
   const [sales, setSales] = useState([]);
@@ -138,6 +138,63 @@ function Sales() {
     return () => plot.remove();
   }, [isDark, sales]);
 
+  // Top 10 orders by sales amount 
+  useEffect(() => {
+    if (!topOrdersChartRef.current || sales.length === 0) return;
+    topOrdersChartRef.current.innerHTML = "";
+
+    const top10 = [...sales]
+      .sort((a, b) => b.salesAmount - a.salesAmount)
+      .slice(0, 10)
+      .map(s => ({
+        order:  s.orderNumber,
+        amount: s.salesAmount || 0,
+      }));
+
+    const plot = Plot.plot({
+      width:        topOrdersChartRef.current.offsetWidth || 400,
+      height:       260,
+      marginLeft:   120,
+      marginBottom: 38,
+      marginTop:    8,
+      marginRight:  16,
+      marks: [
+        Plot.barX(top10, {
+          x:    "amount",
+          y:    "order",
+          fill: isDark ? "#7c9fff" : "#1a2a6c",
+          rx:   3,
+          sort: { y: "-x" },
+        }),
+        Plot.text(top10, {
+          x:          "amount",
+          y:          "order",
+          text:       (d) => `€${d.amount.toLocaleString()}`,
+          dx:         8,
+          fill:       isDark ? "#e2e8f0" : "#1a2a6c",
+          fontSize:   "11px",
+          fontWeight: "600",
+        }),
+        Plot.ruleX([0]),
+      ],
+      x: {
+        label:       "Sales Amount (€)",
+        grid:        true,
+        tickPadding: 6,
+        tickFormat:  d => `€${(d/1000).toFixed(0)}K`,
+      },
+      y: { label: null },
+      style: {
+        fontSize:   "11px",
+        color:      t.textSecondary,
+        background: "transparent",
+      },
+    });
+
+    topOrdersChartRef.current.appendChild(plot);
+    return () => plot.remove();
+  }, [isDark, sales]);
+
   // Filter + sort
   let filtered = sales.filter((s) => {
     const matchSearch = s.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -208,12 +265,12 @@ function Sales() {
       {/* Charts */}
       <div style={styles.chartsGrid}>
 
-        {/* Revenue trend — switchable */}
+        {/* Top 10 orders by sales amount */}
         <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
           <div style={styles.chartHeader}>
             <div>
-              <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Revenue Trend</h3>
-              <p style={{ ...styles.chartSub, color: t.textSecondary }}>Monthly revenue from orders</p>
+              <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Top 10 Orders by Value</h3>
+              <p style={{ ...styles.chartSub, color: t.textSecondary }}>Highest value sales orders</p>
             </div>
             {totalRevenue != null && (
               <div style={{ ...styles.totalPill, background: t.accentLight, color: t.accent }}>
@@ -221,17 +278,8 @@ function Sales() {
               </div>
             )}
           </div>
-          {monthlyRevenue.length > 0 ? (
-            <ChartToggle
-              data={monthlyRevenue}
-              xKey="monthNum"
-              yKey="revenue"
-              xFormat={(d) => ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d]}
-              xDomain={[0.5, 12.5]}
-              yLabel="Revenue (€)"
-              height={240}
-              tier={user?.tier || "GROWTH"}
-            />
+          {sales.length > 0 ? (
+            <div ref={topOrdersChartRef} style={{ width: "100%", marginTop: "12px" }} />
           ) : (
             <div style={{ ...styles.stateBox, color: t.textSecondary }}>
               {loading ? "Loading..." : "No data"}
