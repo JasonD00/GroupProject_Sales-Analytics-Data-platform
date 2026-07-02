@@ -1,12 +1,24 @@
+/*
+  Overview:
+  Main layout, renders the sidebar, topbar and any page that matches the current "activeNav" state
+  
+*/
+
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import Sidebar from "../components/Sidebar";
 import TopBar from "../components/TopBar";
+import LoginModel from "../components/LoginModel";
 import Overview from "./dashboard/Overview";
 import Sales from "./dashboard/Sales";
 import Products from "./dashboard/Products";
 import Customers from "./dashboard/Customers";
 import Transactions from "./dashboard/Transactions";
+import Invoices from "./dashboard/Invoices";
+//import Reports from "./dashboard/Reports";
+import DataExport from "./dashboard/DataExport";
+import Settings from "./dashboard/Settings";
 
 const pageTitles = {
   overview:     "Overview",
@@ -14,11 +26,14 @@ const pageTitles = {
   products:     "Products",
   customers:    "Customers",
   transactions: "Transactions",
-  reports:      "Reports",
-  users:        "User Management",
+  invoices:     "Invoices",
+  reports:      "Performance Reports",
+  export:       "Data Export",
+  settings:     "Settings",
 };
 
 function Dashboard() {
+  const { showLoginModel } = useAuth();
   const { isDark } = useTheme();
   const [activeNav, setActiveNav] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -41,10 +56,14 @@ function Dashboard() {
           {activeNav === "products"     && <Products />}
           {activeNav === "customers"    && <Customers />}
           {activeNav === "transactions" && <Transactions />}
+          {activeNav === "invoices"     && <Invoices />}
           {activeNav === "reports"      && <Reports />}
-          {activeNav === "users"        && <UserManagement />}
+          {activeNav === "export"       && <DataExport />}
+          {activeNav === "settings"     && <Settings />}
         </div>
       </main>
+
+      {showLoginModel && <LoginModel />}
     </div>
   );
 }

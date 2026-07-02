@@ -42,7 +42,7 @@ export const getKPIs = async () => {
   return [
     {
       label: "Total Revenue",
-      value: `$${totalRevenue.toLocaleString()}`,
+      value: `€${totalRevenue.toLocaleString()}`,
       change: "12%",
       up: true,
     },
@@ -60,7 +60,7 @@ export const getKPIs = async () => {
     },
     {
       label: "Avg Order Value",
-      value: `$${Math.round(avgOrderValue)}`,
+      value: `€${Math.round(avgOrderValue)}`,
       change: "3%",
       up: true,
     },
