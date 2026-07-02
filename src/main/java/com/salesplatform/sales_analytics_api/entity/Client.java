@@ -2,11 +2,10 @@ package com.salesplatform.sales_analytics_api.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "crm_client_info", schema = "bronze")
+@Table(name = "dim_clients", schema = "gold")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,20 +17,35 @@ public class Client {
     private Integer clientId;
 
     @Column(name = "client_key")
-    private String clientKey;
+    private Integer clientKey;
 
-    @Column(name = "client_firstname")
+    @Column(name = "client_number")
+    private String clientNumber;
+
+    @Column(name = "first_name")
     private String firstName;
 
-    @Column(name = "client_lastname")
+    @Column(name = "last_name")
     private String lastName;
 
-    @Column(name = "client_marital_status")
+    @Column(name = "marital_status")
     private String maritalStatus;
 
-    @Column(name = "client_gender")
+    @Column(name = "gender")
     private String gender;
 
-    @Column(name = "client_create_dt") // ← correct column name
+    @Column(name = "country")
+    private String country;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
+    @Column(name = "account_status")
+    private String accountStatus;
+
+    @Column(name = "client_segment")
+    private String clientSegment;
+
+    @Column(name = "create_date")
     private LocalDate clientCreateDate;
 }
