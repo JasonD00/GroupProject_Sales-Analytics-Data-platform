@@ -1,97 +1,219 @@
 /*
-  Overview:
-  Shows a daily volume chart, transaction type breakdown and a table with amount range filters and success rate tracking
+  Endpoints used:
+    GET /api/sales/territory → revenue, orders and avg order value by country/segment
+
+  Requires JWT token in Authorization header.
+
+  Map:
+    Uses React Leaflet for an interactive world map.
+    Countries with sales data are shown as circle markers
+    sized and coloured by total revenue.
+    Users can zoom in/out and click/drag the map.
+
+  Install required packages:
+    npm install react-leaflet leaflet
 */
 
-import { useRef, useEffect, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import * as Plot from "@observablehq/plot";
-import ChartToggle from "../../components/ChartToggle";
+import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
-function Transactions() {
+// Country name and coordinates lookup
+const COUNTRY_COORDS = {
+  "Ireland":   [53.1424, -7.6921],
+  "UK":        [55.3781, -3.4360],
+  "Germany":   [51.1657,  10.4515],
+  "France":    [46.2276,   2.2137],
+  "USA":       [37.0902, -95.7129],
+  "Australia": [-25.2744, 133.7751],
+};
+
+function Territory() {
   const { isDark } = useTheme();
-  const { user }   = useAuth();
-  const t    = isDark ? dark : light;
-  const tier = user?.tier || "Growth";
+  const { user, token } = useAuth();
+  const t = isDark ? dark : light;
 
-  const typeChartRef = useRef(null);
+  const revenueChartRef = useRef(null);
+  const segmentChartRef = useRef(null);
 
-  const [typeFilter,   setTypeFilter]   = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [searchTerm,   setSearchTerm]   = useState("");
-  const [minAmount,    setMinAmount]    = useState("");
-  const [maxAmount,    setMaxAmount]    = useState("");
+  // API state
+  const [territory, setTerritory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const filteredTransactions = MOCK_TRANSACTIONS.filter((tx) => {
-    const matchesType   = typeFilter   === "all" || tx.type   === typeFilter;
-    const matchesStatus = statusFilter === "all" || tx.status === statusFilter;
-    const matchesSearch = tx.transactionId.toString().includes(searchTerm) ||
-                          tx.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesMin    = !minAmount || tx.amount >= parseFloat(minAmount);
-    const matchesMax    = !maxAmount || tx.amount <= parseFloat(maxAmount);
-    return matchesType && matchesStatus && matchesSearch && matchesMin && matchesMax;
-  });
+  // Filter state
+  const [segmentFilter, setSegmentFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("revenue");
 
-  // Distribution of transactions type
+  const authHeader = {
+    "Authorization": `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+
   useEffect(() => {
-    if (!typeChartRef.current) return;
-    typeChartRef.current.innerHTML = "";
+    if (!token) return;
+    fetch("http://localhost:8080/api/sales/territory", { headers: authHeader })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setTerritory(data))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [token]);
 
-    const typeData = [
-      { type: "Sale",   count: MOCK_TRANSACTIONS.filter(t => t.type === "Sale").length,   color: isDark ? "#22c55e" : "#16a34a" },
-      { type: "Return", count: MOCK_TRANSACTIONS.filter(t => t.type === "Return").length, color: isDark ? "#fbbf24" : "#f59e0b" },
-      { type: "Refund", count: MOCK_TRANSACTIONS.filter(t => t.type === "Refund").length, color: isDark ? "#ef4444" : "#dc2626" },
-    ];
+  // Group by country - sum revenue and orders
+  const byCountry = (() => {
+    const map = {};
+    territory.forEach((d) => {
+      if (!map[d.country]) {
+        map[d.country] = { country: d.country, totalRevenue: 0, totalOrders: 0 };
+      }
+      map[d.country].totalRevenue += d.totalRevenue || 0;
+      map[d.country].totalOrders  += d.totalOrders  || 0;
+    });
+    return Object.values(map).sort((a, b) => b.totalRevenue - a.totalRevenue);
+  })();
+
+  // Max revenue for scaling circle sizes on map
+  const maxRevenue = Math.max(...byCountry.map(d => d.totalRevenue), 1);
+
+  // Segments for filter dropdown
+  const uniqueSegments = [...new Set(territory.map(d => d.clientSegment))].filter(Boolean).sort();
+
+  // Filtered table data
+  let filtered = territory.filter(d =>
+    segmentFilter === "all" || d.clientSegment === segmentFilter
+  );
+
+  if (sortBy === "revenue") filtered.sort((a, b) => b.totalRevenue  - a.totalRevenue);
+  if (sortBy === "orders")  filtered.sort((a, b) => b.totalOrders   - a.totalOrders);
+  if (sortBy === "avg")     filtered.sort((a, b) => b.avgOrderValue - a.avgOrderValue);
+  if (sortBy === "country") filtered.sort((a, b) => a.country.localeCompare(b.country));
+
+  // KPI values
+  const totalRevenue  = byCountry.reduce((s, d) => s + d.totalRevenue, 0);
+  const totalOrders   = byCountry.reduce((s, d) => s + d.totalOrders,  0);
+  const topCountry    = byCountry[0]?.country || "—";
+  const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+  // Revenue by country chart
+  useEffect(() => {
+    if (!revenueChartRef.current || byCountry.length === 0) return;
+    revenueChartRef.current.innerHTML = "";
 
     const plot = Plot.plot({
-      width:        typeChartRef.current.offsetWidth || 400,
-      height:       160,
-      marginLeft:   88,
+      width: revenueChartRef.current.offsetWidth || 400,
+      height: Math.max(180, byCountry.length * 40 + 40),
+      marginLeft: 110,
       marginBottom: 38,
-      marginTop:    8,
+      marginTop: 8,
+      marginRight: 60,
       marks: [
-        Plot.barX(typeData, {
-          x: "count", y: "type",
-          fill: (d) => d.color,
-          rx:   3,
+        Plot.barX(byCountry, {
+          x: "totalRevenue",
+          y: "country",
+          fill: isDark ? "#7c9fff" : "#1a2a6c",
+          rx: 3,
+          sort: { y: "-x" },
         }),
-        Plot.text(typeData, {
-          x: "count", y: "type",
-          text: (d) => d.count,
-          dx:   8,
+        Plot.text(byCountry, {
+          x: "totalRevenue",
+          y: "country",
+          text: (d) => `€${(d.totalRevenue / 1000).toFixed(1)}K`,
+          dx: 8,
           fill: isDark ? "#e2e8f0" : "#1a2a6c",
-          fontSize:   "11px",
+          fontSize: "11px",
           fontWeight: "600",
         }),
         Plot.ruleX([0]),
       ],
-      x: { label: "Count", grid: true },
+      x: {
+        label: "Revenue (€)",
+        grid: true,
+        tickPadding: 6,
+        tickFormat: d => `€${(d / 1000).toFixed(0)}K`,
+        labelOffset: 56,
+        labelAnchor: "center",
+      },
       y: { label: null },
-      style: { fontSize: "11px", color: t.textSecondary, background: "transparent" },
+      style: {
+        fontSize: "11px",
+        color: t.textSecondary,
+        background: "transparent",
+      },
     });
 
-    typeChartRef.current.appendChild(plot);
+    revenueChartRef.current.appendChild(plot);
     return () => plot.remove();
-  }, [isDark]);
+  }, [isDark, byCountry]);
 
-  const totalTransactions   = MOCK_TRANSACTIONS.length;
-  const successTransactions = MOCK_TRANSACTIONS.filter(t => t.status === "Success").length;
-  const totalAmount         = MOCK_TRANSACTIONS.filter(t => t.status === "Success").reduce((s, t) => s + t.amount, 0);
-  const failedCount         = MOCK_TRANSACTIONS.filter(t => t.status === "Failed").length;
-  const successRate         = ((successTransactions / totalTransactions) * 100).toFixed(1);
+  // Revenue by segment chart
+  useEffect(() => {
+    if (!segmentChartRef.current || territory.length === 0) return;
+    segmentChartRef.current.innerHTML = "";
 
-  const getStatusColor = (status) => ({
-    Success: t.success,
-    Failed:  t.danger,
-    Pending: t.warning,
-  }[status] || t.textSecondary);
+    const bySegment = {};
+    territory.forEach(d => {
+      bySegment[d.clientSegment] = (bySegment[d.clientSegment] || 0) + d.totalRevenue;
+    });
+    const segmentData = Object.entries(bySegment)
+      .map(([segment, revenue]) => ({ segment, revenue }))
+      .sort((a, b) => b.revenue - a.revenue);
 
-  const getTypeColor = (type) => ({
-    Sale:   t.success,
-    Return: t.warning,
-    Refund: t.danger,
-  }[type] || t.textSecondary);
+    const plot = Plot.plot({
+      width: segmentChartRef.current.offsetWidth || 400,
+      height: Math.max(160, segmentData.length * 44 + 40),
+      marginLeft: 110,
+      marginBottom: 38,
+      marginTop: 8,
+      marginRight: 60,
+      marks: [
+        Plot.barX(segmentData, {
+          x: "revenue",
+          y: "segment",
+          fill: isDark ? "#60a5fa" : "#3b82f6",
+          rx: 3,
+          sort: { y: "-x" },
+        }),
+        Plot.text(segmentData, {
+          x: "revenue",
+          y: "segment",
+          text: (d) => `€${(d.revenue / 1000).toFixed(1)}K`,
+          dx: 8,
+          fill: isDark ? "#e2e8f0" : "#1a2a6c",
+          fontSize: "11px",
+          fontWeight: "600",
+        }),
+        Plot.ruleX([0]),
+      ],
+      x: {
+        label: "Revenue (€)",
+        grid: true,
+        tickPadding: 6,
+        tickFormat: d => `€${(d / 1000).toFixed(0)}K`,
+        labelOffset: 56,
+        labelAnchor: "center",
+      },
+      y: { label: null },
+      style: {
+        fontSize: "11px",
+        color: t.textSecondary,
+        background: "transparent",
+      },
+    });
+
+    segmentChartRef.current.appendChild(plot);
+    return () => plot.remove();
+  }, [isDark, territory]);
+
+  if (!user) {
+    return (
+      <div style={{ ...styles.stateBox, color: t.textSecondary }}>
+        Please sign in to view territory data.
+      </div>
+    );
+  }
 
   return (
     <div style={styles.wrapper}>
@@ -99,13 +221,20 @@ function Transactions() {
       {/* Summary Cards */}
       <div style={styles.summaryGrid}>
         {[
-          { label: "Total Transactions", value: totalTransactions,                  bg: t.accentLight  },
-          { label: "Total Amount",       value: `€${(totalAmount/1000).toFixed(1)}K`, bg: t.successLight },
-          { label: "Success Rate",       value: `${successRate}%`,                  bg: t.successLight },
-          { label: "Failed",             value: failedCount,                         bg: t.dangerLight  },
+          { label: "Total Revenue",   value: loading ? "—" : `€${(totalRevenue / 1000).toFixed(1)}K`, accent: t.successLight },
+          { label: "Total Orders",    value: loading ? "—" : totalOrders.toLocaleString(),             accent: t.accentLight  },
+          { label: "Top Country",     value: loading ? "—" : topCountry,                               accent: t.accentLight  },
+          { label: "Avg Order Value", value: loading ? "—" : `€${avgOrderValue.toFixed(0)}`,           accent: t.warningLight },
         ].map((card) => (
-          <div key={card.label} style={{ ...styles.summaryCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-            <div style={{ ...styles.summaryAccent, background: card.bg }} />
+          <div
+            key={card.label}
+            style={{
+              ...styles.summaryCard,
+              background: t.cardBg,
+              border:     `1px solid ${t.border}`,
+            }}
+          >
+            <div style={{ ...styles.summaryAccent, background: card.accent }} />
             <div>
               <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>{card.label}</div>
               <div style={{ ...styles.summaryValue, color: t.textPrimary }}>{card.value}</div>
@@ -114,170 +243,211 @@ function Transactions() {
         ))}
       </div>
 
-      {/* Charts */}
-      <div style={styles.chartsGrid}>
+      {/* Interactive Map */}
+      <div style={{ ...styles.mapCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+        <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Interactive Territory Map</h3>
+        <p style={{ ...styles.chartSub, color: t.textSecondary }}>
+          Scroll to zoom · Click and drag to pan · Hover markers for details
+        </p>
 
-        {/* Switchable volume over time*/}
+        {loading ? (
+          <div style={{ ...styles.stateBox, color: t.textSecondary }}>Loading map...</div>
+        ) : (
+          <div style={styles.mapWrapper}>
+            <MapContainer
+              center={[30, 10]}
+              zoom={2}
+              style={{ height: "400px", width: "100%", borderRadius: "8px" }}
+              scrollWheelZoom={true}
+            >
+              {/* Map tiles - dark or light depending on the theme */}
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url={isDark
+                  ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                }
+              />
+
+              {/* Circle markers for each country */}
+              {byCountry.map((country) => {
+                const coords = COUNTRY_COORDS[country.country];
+                if (!coords) return null;
+
+                // Scale the radius between 12 and 40 based on the revenue
+                const radius = 12 + (country.totalRevenue / maxRevenue) * 28;
+
+                return (
+                  <CircleMarker
+                    key={country.country}
+                    center={coords}
+                    radius={radius}
+                    pathOptions={{
+                      fillColor:   isDark ? "#7c9fff" : "#1a2a6c",
+                      fillOpacity: 0.7,
+                      color: isDark ? "#bfdbfe" : "#ffffff",
+                      weight: 2,
+                    }}
+                  >
+                    <Tooltip permanent={false} direction="top">
+                      <div style={{ fontSize: "12px", fontWeight: "600" }}>
+                        {country.country}
+                      </div>
+                      <div style={{ fontSize: "11px" }}>
+                        Revenue: €{country.totalRevenue.toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: "11px" }}>
+                        Orders: {country.totalOrders}
+                      </div>
+                    </Tooltip>
+                  </CircleMarker>
+                );
+              })}
+            </MapContainer>
+
+            {/* Map legend */}
+            <div style={{ ...styles.mapLegend, background: t.cardBg, border: `1px solid ${t.border}` }}>
+              <div style={{ ...styles.legendTitle, color: t.textSecondary }}>Circle size = Revenue</div>
+              {byCountry.slice(0, 3).map(d => (
+                <div key={d.country} style={styles.legendItem}>
+                  <div style={{
+                    ...styles.legendDot,
+                    background: isDark ? "#7c9fff" : "#1a2a6c",
+                    opacity:    0.7,
+                  }} />
+                  <span style={{ ...styles.legendLabel, color: t.textSecondary }}>
+                    {d.country} — €{(d.totalRevenue / 1000).toFixed(1)}K
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Revenue + Segment Charts */}
+      <div style={styles.chartsGrid}>
         <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Transaction Volume</h3>
-          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Daily transaction count</p>
-          <ChartToggle
-            data={MOCK_TRANSACTION_VOLUME}
-            xKey="day"
-            yKey="count"
-            yLabel="Count"
-            height={240}
-            tier={tier}
-          />
+          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Revenue by Country</h3>
+          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Total revenue per country</p>
+          <div ref={revenueChartRef} style={{ width: "100%", marginTop: "12px" }} />
         </div>
 
-        {/* Type breakdown */}
         <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Transaction Types</h3>
-          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Breakdown by transaction type</p>
-          <div ref={typeChartRef} style={{ width: "100%", marginTop: "12px" }} />
+          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Revenue by Segment</h3>
+          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Total revenue per client segment</p>
+          <div ref={segmentChartRef} style={{ width: "100%", marginTop: "12px" }} />
         </div>
       </div>
 
       {/* Filters */}
       <div style={{ ...styles.filterBar, background: t.cardBg, border: `1px solid ${t.border}` }}>
-        <input
-          type="text"
-          placeholder="Search transactions..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ ...styles.searchInput, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
-        />
         <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
+          value={segmentFilter}
+          onChange={(e) => setSegmentFilter(e.target.value)}
           style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
         >
-          <option value="all">All Types</option>
-          <option value="Sale">Sale</option>
-          <option value="Return">Return</option>
-          <option value="Refund">Refund</option>
+          <option value="all">All Segments</option>
+          {uniqueSegments.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
           style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
         >
-          <option value="all">All Status</option>
-          <option value="Success">Success</option>
-          <option value="Failed">Failed</option>
-          <option value="Pending">Pending</option>
+          <option value="revenue">Sort by Revenue</option>
+          <option value="orders">Sort by Orders</option>
+          <option value="avg">Sort by Avg Order Value</option>
+          <option value="country">Sort by Country</option>
         </select>
-        <input
-          type="number"
-          placeholder="Min €"
-          value={minAmount}
-          onChange={(e) => setMinAmount(e.target.value)}
-          style={{ ...styles.amountInput, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
-        />
-        <input
-          type="number"
-          placeholder="Max €"
-          value={maxAmount}
-          onChange={(e) => setMaxAmount(e.target.value)}
-          style={{ ...styles.amountInput, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
-        />
       </div>
 
-      {/* Transactions Table */}
+      {/* Territory Table */}
       <div style={{ ...styles.tableCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
         <div style={styles.tableHeader}>
           <div>
-            <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Transaction Details</h3>
-            <p style={{ ...styles.chartSub, color: t.textSecondary }}>{filteredTransactions.length} results</p>
+            <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Territory Breakdown</h3>
+            <p style={{ ...styles.chartSub, color: t.textSecondary }}>
+              {loading ? "Loading..." : `${filtered.length} territory segments`}
+            </p>
           </div>
-          <button style={styles.addBtn}>+ New Transaction</button>
         </div>
-        <div style={styles.tableWrapper}>
-          <table style={styles.table}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${t.border}` }}>
-                {["ID", "Date", "Amount", "Type", "Description", "Customer", "Status", ""].map((h) => (
-                  <th key={h} style={{ ...styles.th, color: t.textSecondary }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTransactions.map((tx) => (
-                <tr key={tx.transactionId} style={{ borderBottom: `1px solid ${t.borderLight}` }}>
-                  <td style={{ ...styles.td, color: t.textSecondary, fontFamily: "monospace" }}>{tx.transactionId}</td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>{new Date(tx.transactionDate).toLocaleDateString()}</td>
-                  <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "600" }}>€{tx.amount.toLocaleString()}</td>
-                  <td style={{ ...styles.td }}>
-                    <span style={{ ...styles.typeBadge, background: getTypeColor(tx.type) + "22", color: getTypeColor(tx.type) }}>
-                      {tx.type}
-                    </span>
-                  </td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>{tx.description}</td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>{tx.customerId}</td>
-                  <td style={{ ...styles.td }}>
-                    <span style={{ ...styles.statusBadge, background: getStatusColor(tx.status), color: "#fff" }}>
-                      {tx.status}
-                    </span>
-                  </td>
-                  <td style={{ ...styles.td }}>
-                    <button style={{ ...styles.actionBtn, color: t.accent }}>View</button>
-                  </td>
+
+        {loading && (
+          <div style={{ ...styles.stateBox, color: t.textSecondary }}>Loading territory data...</div>
+        )}
+        {error && !loading && (
+          <div style={{ ...styles.stateBox, color: t.danger }}>Error: {error}</div>
+        )}
+        {!loading && !error && filtered.length === 0 && (
+          <div style={{ ...styles.stateBox, color: t.textSecondary }}>No data available.</div>
+        )}
+
+        {!loading && !error && filtered.length > 0 && (
+          <div style={styles.tableWrapper}>
+            <table style={styles.table}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+                  {["Country", "Segment", "Total Revenue", "Total Orders", "Avg Order Value"].map((h) => (
+                    <th key={h} style={{ ...styles.th, color: t.textSecondary }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map((d, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${t.borderLight}` }}>
+                    <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "500" }}>{d.country}</td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{d.clientSegment}</td>
+                    <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "600" }}>
+                      €{d.totalRevenue.toLocaleString()}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{d.totalOrders}</td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>
+                      €{d.avgOrderValue.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
     </div>
   );
 }
 
-// MOCK DATA
-// TODO: Remove once backend is connected — replace with API fetch 
-const MOCK_TRANSACTIONS = [
-  { transactionId: 1001, transactionDate: "2024-01-20", amount: 2500, type: "Sale",   status: "Success", description: "Customer purchase", customerId: 456 },
-  { transactionId: 1002, transactionDate: "2024-01-21", amount: 1200, type: "Sale",   status: "Success", description: "Order #ORD-5001",   customerId: 789 },
-  { transactionId: 1003, transactionDate: "2024-01-21", amount: 500,  type: "Return", status: "Success", description: "Product return",     customerId: 123 },
-  { transactionId: 1004, transactionDate: "2024-01-22", amount: 3400, type: "Sale",   status: "Success", description: "Bulk order",         customerId: 321 },
-  { transactionId: 1005, transactionDate: "2024-01-22", amount: 750,  type: "Refund", status: "Success", description: "Full refund",        customerId: 654 },
-  { transactionId: 1006, transactionDate: "2024-01-23", amount: 1800, type: "Sale",   status: "Failed",  description: "Payment declined",   customerId: 987 },
-  { transactionId: 1007, transactionDate: "2024-01-23", amount: 2100, type: "Sale",   status: "Success", description: "Online purchase",    customerId: 111 },
-  { transactionId: 1008, transactionDate: "2024-01-24", amount: 3600, type: "Sale",   status: "Pending", description: "Processing",         customerId: 222 },
-  { transactionId: 1009, transactionDate: "2024-01-24", amount: 900,  type: "Return", status: "Success", description: "Exchange",           customerId: 333 },
-  { transactionId: 1010, transactionDate: "2024-01-25", amount: 2900, type: "Sale",   status: "Success", description: "Corporate order",    customerId: 444 },
-  { transactionId: 1011, transactionDate: "2024-01-25", amount: 650,  type: "Refund", status: "Success", description: "Partial refund",     customerId: 555 },
-  { transactionId: 1012, transactionDate: "2024-01-26", amount: 4100, type: "Sale",   status: "Success", description: "Large purchase",     customerId: 666 },
-];
-
-const MOCK_TRANSACTION_VOLUME = [
-  { day: 1, count: 12 }, { day: 2, count: 15 }, { day: 3, count: 18 },
-  { day: 4, count: 14 }, { day: 5, count: 22 }, { day: 6, count: 19 },
-  { day: 7, count: 25 }, { day: 8, count: 21 }, { day: 9, count: 28 },
-  { day: 10, count: 24 }, { day: 11, count: 26 }, { day: 12, count: 29 },
-  { day: 13, count: 23 }, { day: 14, count: 27 }, { day: 15, count: 32 },
-];
-
 // THEME
 const light = {
-  textPrimary:   "#1a2a6c", textSecondary: "#555",
-  cardBg:        "#ffffff", border: "#e0e4ef", borderLight: "#f0f2f7",
-  inputBg:       "#ffffff", accent: "#1a2a6c",
-  success:       "#16a34a", successLight: "#dcfce7",
-  warning:       "#f59e0b", warningLight: "#fef3c7",
-  danger:        "#dc2626", dangerLight: "#fee2e2",
+  textPrimary:   "#1a2a6c",
+  textSecondary: "#555",
+  cardBg:        "#ffffff",
+  border:        "#e0e4ef",
+  borderLight:   "#f0f2f7",
+  inputBg:       "#ffffff",
+  accent:        "#1a2a6c",
   accentLight:   "#e0e7ff",
+  success:       "#16a34a",
+  successLight:  "#dcfce7",
+  warning:       "#f59e0b",
+  warningLight:  "#fef3c7",
+  danger:        "#dc2626",
 };
 
 const dark = {
-  textPrimary:   "#e2e8f0", textSecondary: "#94a3b8",
-  cardBg:        "#1e293b", border: "#334155", borderLight: "#1e293b",
-  inputBg:       "#0f172a", accent: "#7c9fff",
-  success:       "#22c55e", successLight: "#064e3b",
-  warning:       "#fbbf24", warningLight: "#78350f",
-  danger:        "#ef4444", dangerLight: "#7f1d1d",
+  textPrimary:   "#e2e8f0",
+  textSecondary: "#94a3b8",
+  cardBg:        "#1e293b",
+  border:        "#334155",
+  borderLight:   "#1e293b",
+  inputBg:       "#0f172a",
+  accent:        "#7c9fff",
   accentLight:   "#1e3a8a",
+  success:       "#22c55e",
+  successLight:  "#064e3b",
+  warning:       "#fbbf24",
+  warningLight:  "#78350f",
+  danger:        "#ef4444",
 };
 
 // STYLING
@@ -310,8 +480,47 @@ const styles = {
     marginBottom: "4px",
   },
   summaryValue: {
-    fontSize:   "24px",
+    fontSize:   "22px",
     fontWeight: "700",
+  },
+  mapCard: {
+    padding:      "20px",
+    borderRadius: "10px",
+  },
+  mapWrapper: {
+    position:   "relative",
+    marginTop:  "12px",
+  },
+  mapLegend: {
+    position:     "absolute",
+    bottom:       "12px",
+    right:        "12px",
+    padding:      "10px 14px",
+    borderRadius: "8px",
+    zIndex:       1000,
+    minWidth:     "160px",
+  },
+  legendTitle: {
+    fontSize:     "10px",
+    fontWeight:   "600",
+    marginBottom: "6px",
+    textTransform:"uppercase",
+    letterSpacing:"0.4px",
+  },
+  legendItem: {
+    display:    "flex",
+    alignItems: "center",
+    gap:        "6px",
+    marginBottom:"4px",
+  },
+  legendDot: {
+    width:        "10px",
+    height:       "10px",
+    borderRadius: "50%",
+    flexShrink:   0,
+  },
+  legendLabel: {
+    fontSize: "11px",
   },
   chartsGrid: {
     display:             "grid",
@@ -339,26 +548,11 @@ const styles = {
     flexWrap:     "wrap",
     alignItems:   "center",
   },
-  searchInput: {
-    flex:         1,
-    minWidth:     "200px",
-    padding:      "8px 14px",
-    borderRadius: "6px",
-    fontSize:     "13px",
-    outline:      "none",
-  },
   select: {
     padding:      "8px 12px",
     borderRadius: "6px",
     fontSize:     "13px",
     cursor:       "pointer",
-    outline:      "none",
-  },
-  amountInput: {
-    width:        "80px",
-    padding:      "8px 12px",
-    borderRadius: "6px",
-    fontSize:     "13px",
     outline:      "none",
   },
   tableCard: {
@@ -371,15 +565,10 @@ const styles = {
     alignItems:     "flex-start",
     marginBottom:   "16px",
   },
-  addBtn: {
-    padding:      "8px 16px",
-    background:   "#1a2a6c",
-    color:        "#fff",
-    border:       "none",
-    borderRadius: "6px",
-    fontSize:     "13px",
-    fontWeight:   "600",
-    cursor:       "pointer",
+  stateBox: {
+    padding:   "40px",
+    textAlign: "center",
+    fontSize:  "13px",
   },
   tableWrapper: {
     overflowX: "auto",
@@ -400,26 +589,6 @@ const styles = {
     padding:  "11px 14px",
     fontSize: "13px",
   },
-  typeBadge: {
-    padding:      "3px 9px",
-    borderRadius: "20px",
-    fontSize:     "11px",
-    fontWeight:   "600",
-  },
-  statusBadge: {
-    padding:      "3px 9px",
-    borderRadius: "20px",
-    fontSize:     "11px",
-    fontWeight:   "600",
-  },
-  actionBtn: {
-    background:     "transparent",
-    border:         "none",
-    fontSize:       "13px",
-    fontWeight:     "500",
-    cursor:         "pointer",
-    textDecoration: "underline",
-  },
 };
 
-export default Transactions;
+export default Territory;
