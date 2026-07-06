@@ -1,42 +1,64 @@
 /*
-  Overview:
-  Left navigation panel
-  Filters nav links by the users sub tier, highlights the active page the users on 
-  Shows a tier badge at the bottom
+  What it does:
+    - Shows nav items filtered by the user's subscription tier
+    - Highlights the currently active page
+    - Collapses to icon-only mode via the toggle button
+    - Shows the user's tier badge at the bottom when expanded
+
+  Tier access rules:
+    - GROWTH - Overview, Customers, Settings
+    - PRO - + Sales, Territory, Invoices, Reports, Data Export
+    - ENTERPRISE - + Products (and all PRO features)
+
+  Props:
+    - activeNav (string)   - ID of the currently active page
+    - setActiveNav (function) - Called when a nav item is clicked
+    - sidebarOpen (boolean)  - Whether the sidebar is expanded
+    - setSidebarOpen (function) - Toggles the sidebar open/closed
+
+  Reads from AuthContext:
+    - user - Used to filter nav items by tier
 */
 
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
-// Main nav items
+// Main navigation items — tier controls visibility
+// Tiers are uppercase to match what the backend JWT returns
 const NAV_ITEMS = [
-  { id: "overview",      label: "Overview",      tiers: ["Growth", "Pro", "Enterprise"] },
-  { id: "sales",         label: "Sales",          tiers: ["Pro", "Enterprise"]           },
-  { id: "customers",     label: "Customers",      tiers: ["Growth", "Pro", "Enterprise"] },
-  { id: "products",      label: "Products",       tiers: ["Enterprise"]                  },
-  { id: "transactions",  label: "Transactions",   tiers: ["Pro", "Enterprise"]           },
-  { id: "invoices",      label: "Invoices",       tiers: ["Pro", "Enterprise"]           },
+  { id: "overview",   label: "Overview",   tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
+  { id: "sales",      label: "Sales",      tiers: ["PRO", "ENTERPRISE"]           },
+  { id: "customers",  label: "Customers",  tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
+  { id: "products",   label: "Products",   tiers: ["ENTERPRISE"]                  },
+  { id: "territory",  label: "Territory",  tiers: ["PRO", "ENTERPRISE"]           },
+  { id: "invoices",   label: "Invoices",   tiers: ["PRO", "ENTERPRISE"]           },
 ];
 
-// Shows items shown below the sidebar divider - depends on tier 
+// Feature items shown below a divider
 const FEATURE_ITEMS = [
-  { id: "reports",  label: "Reports",      tiers: ["Pro", "Enterprise"]           },
-  { id: "export",   label: "Data Export",  tiers: ["Pro", "Enterprise"]           },
-  { id: "settings", label: "Settings",     tiers: ["Growth", "Pro", "Enterprise"] },
+  { id: "reports",  label: "Reports",     tiers: ["PRO", "ENTERPRISE"]           },
+  { id: "export",   label: "Data Export", tiers: ["PRO", "ENTERPRISE"]           },
+  { id: "settings", label: "Settings",    tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
 ];
 
+// Supports both uppercase (from backend) and capitalised (legacy)
 const TIER_COLORS = {
+  GROWTH:     { bg: "#dcfce7", text: "#16a34a" },
+  PRO:        { bg: "#dbeafe", text: "#1d4ed8" },
+  ENTERPRISE: { bg: "#ede9fe", text: "#7c3aed" },
   Growth:     { bg: "#dcfce7", text: "#16a34a" },
   Pro:        { bg: "#dbeafe", text: "#1d4ed8" },
   Enterprise: { bg: "#ede9fe", text: "#7c3aed" },
 };
 
-function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
-  const { user } = useAuth();
-  const { isDark } = useTheme();
-  const t = isDark ? dark : light;
+const DEFAULT_TIER_COLOR = { bg: "#ede9fe", text: "#7c3aed" };
 
-  // Filter nav items depending on the users tier
+function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
+  const { user }   = useAuth();
+  const { isDark } = useTheme();
+  const t          = isDark ? dark : light;
+
+  // Filter nav items by tier — show only Overview if not logged in
   const visibleNavItems = NAV_ITEMS.filter((item) => {
     if (!user) return item.id === "overview";
     return item.tiers.includes(user.tier);
@@ -47,7 +69,16 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
     return item.tiers.includes(user.tier);
   });
 
-  const tierColors = user ? TIER_COLORS[user.tier] : null;
+  // Safe tier colour lookup with fallback
+  const tierColors = user
+  ? (TIER_COLORS[user.tier] || DEFAULT_TIER_COLOR)
+  : null;
+
+
+  // Display tier capitalised e.g. ENTERPRISE → Enterprise
+  const displayTier = user?.tier
+    ? user.tier.charAt(0) + user.tier.slice(1).toLowerCase()
+    : "";
 
   return (
     <div
@@ -68,9 +99,10 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
         </button>
       </div>
 
+      {/* Navigation */}
       <nav style={styles.nav}>
 
-        {/* Nav items */}
+        {/* Main nav items */}
         {visibleNavItems.map((item) => {
           const isActive = activeNav === item.id;
           return (
@@ -79,8 +111,8 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
               onClick={() => setActiveNav(item.id)}
               style={{
                 ...styles.navItem,
-                background:  isActive ? t.activeBg  : "transparent",
-                color:       isActive ? t.activeText : t.text,
+                background:  isActive ? t.activeBg    : "transparent",
+                color:       isActive ? t.activeText  : t.text,
                 borderLeft:  isActive ? `3px solid ${t.activeAccent}` : "3px solid transparent",
               }}
             >
@@ -90,11 +122,17 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
           );
         })}
 
-        {/* Divider between nav and features */}
+        {/* Divider */}
         {visibleFeatureItems.length > 0 && (
-          <div style={{ ...styles.divider, borderColor: t.border, margin: sidebarOpen ? "8px 16px" : "8px auto", width: sidebarOpen ? "auto" : "24px" }} />
+          <div style={{
+            ...styles.divider,
+            borderColor: t.border,
+            margin:      sidebarOpen ? "8px 16px" : "8px auto",
+            width:       sidebarOpen ? "auto" : "24px",
+          }} />
         )}
 
+        {/* Feature items */}
         {visibleFeatureItems.map((item) => {
           const isActive = activeNav === item.id;
           return (
@@ -103,8 +141,8 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
               onClick={() => setActiveNav(item.id)}
               style={{
                 ...styles.navItem,
-                background:  isActive ? t.activeBg  : "transparent",
-                color:       isActive ? t.activeText : t.text,
+                background:  isActive ? t.activeBg    : "transparent",
+                color:       isActive ? t.activeText  : t.text,
                 borderLeft:  isActive ? `3px solid ${t.activeAccent}` : "3px solid transparent",
                 fontSize:    "13px",
               }}
@@ -116,11 +154,11 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
         })}
       </nav>
 
-      {/* Tier badge — shown at bottom */}
+      {/* Tier badge — shown when expanded */}
       {user && sidebarOpen && (
         <div style={styles.bottomSection}>
           <div style={{ ...styles.tierBadge, background: tierColors.bg, color: tierColors.text }}>
-            {user.tier} Plan
+            {displayTier} Plan
           </div>
           <div style={{ ...styles.userLabel, color: t.textMuted }}>
             {user.username}
@@ -128,16 +166,19 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
         </div>
       )}
 
+      {/* Collapsed tier dot */}
       {user && !sidebarOpen && (
         <div style={styles.collapsedBottom}>
-          <div style={{ ...styles.tierDot, background: tierColors.text }} title={`${user.tier} Plan`} />
+          <div
+            style={{ ...styles.tierDot, background: tierColors?.text || "#7c3aed" }}
+            title={`${displayTier} Plan`}
+          />
         </div>
       )}
     </div>
   );
 }
 
-// STYLING
 const light = {
   bg:           "#ffffff",
   border:       "#e0e4ef",
@@ -160,26 +201,26 @@ const dark = {
 
 const styles = {
   sidebar: {
-    display:        "flex",
-    flexDirection:  "column",
-    transition:     "width 0.25s ease",
-    overflow:       "hidden",
-    flexShrink:     0,
-    height:         "100vh",
+    display:       "flex",
+    flexDirection: "column",
+    transition:    "width 0.25s ease",
+    overflow:      "hidden",
+    flexShrink:    0,
+    height:        "100vh",
   },
   toggleContainer: {
-    padding:        "14px 16px",
-    display:        "flex",
-    alignItems:     "center",
+    padding:    "14px 16px",
+    display:    "flex",
+    alignItems: "center",
   },
   toggleBtn: {
-    background:  "transparent",
-    border:      "none",
-    fontSize:    "14px",
-    cursor:      "pointer",
-    padding:     "4px",
-    fontWeight:  "600",
-    lineHeight:  1,
+    background: "transparent",
+    border:     "none",
+    fontSize:   "14px",
+    cursor:     "pointer",
+    padding:    "4px",
+    fontWeight: "600",
+    lineHeight: 1,
   },
   nav: {
     flex:          1,
@@ -223,12 +264,12 @@ const styles = {
     gap:           "6px",
   },
   tierBadge: {
-    padding:      "7px 12px",
-    borderRadius: "6px",
-    fontSize:     "11px",
-    fontWeight:   "700",
-    textAlign:    "center",
-    letterSpacing:"0.3px",
+    padding:       "7px 12px",
+    borderRadius:  "6px",
+    fontSize:      "11px",
+    fontWeight:    "700",
+    textAlign:     "center",
+    letterSpacing: "0.3px",
   },
   userLabel: {
     fontSize:  "11px",
