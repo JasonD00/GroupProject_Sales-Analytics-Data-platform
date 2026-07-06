@@ -18,9 +18,9 @@ import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
  
 function Customers() {
-  const { isDark }      = useTheme();
+  const { isDark } = useTheme();
   const { user, token } = useAuth();
-  const t               = isDark ? dark : light;
+  const t = isDark ? dark : light;
  
   // API state
   const [customers, setCustomers] = useState([]);
@@ -34,17 +34,16 @@ function Customers() {
   const [segmentFilter, setSegmentFilter] = useState("all");
   const [sortBy,        setSortBy]        = useState("name");
  
-  // Auth header used for every API call
+  // Auth header used for API calls
   const authHeader = {
     "Authorization": `Bearer ${token}`,
     "Content-Type":  "application/json",
   };
  
   useEffect(() => {
-    console.log("Token: "+token);
     if (!token) return;
  
-    // Fetch both endpoints 
+    // Fetch both endpoints together
     Promise.all([
       fetch("http://localhost:8080/api/clients", { headers: authHeader }),
       fetch("http://localhost:8080/api/clients/summary", { headers: authHeader }),
@@ -54,13 +53,12 @@ function Customers() {
  
         const clientsData = await clientsRes.json();
  
-        
         let summaryData = [];
         if (summaryRes.ok) {
           summaryData = await summaryRes.json();
         }
  
-        // Create a lookup map thats used for the summary data by clientId
+        // Create a lookup map from summary data by clientId
         // Summary fields: clientId, totalSpend, orders, avgOrder, lastOrder
         const summaryMap = {};
         summaryData.forEach((s) => {
@@ -94,7 +92,7 @@ function Customers() {
       .finally(() => setLoading(false));
   }, [token]);
  
-  // Unique values for filter dropdowns
+  // Values for filter dropdowns
   const uniqueRegions  = [...new Set(customers.map(c => c.region))].filter(Boolean).sort();
   const uniqueSegments = [...new Set(customers.map(c => c.segment))].filter(Boolean).sort();
  
@@ -160,7 +158,7 @@ function Customers() {
             <div>
               <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>{card.label}</div>
               <div style={{ ...styles.summaryValue, color: t.textPrimary }}>
-                {loading ? "—" : card.value}
+                {loading ? "-" : card.value}
               </div>
             </div>
           </div>
@@ -277,16 +275,16 @@ function Customers() {
                     <td style={{ ...styles.td, color: t.textSecondary }}>{c.region}</td>
                     <td style={{ ...styles.td, color: t.textSecondary }}>{c.segment}</td>
                     <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "600" }}>
-                      {c.totalSpend != null ? `€${c.totalSpend.toLocaleString()}` : "—"}
+                      {c.totalSpend != null ? `€${c.totalSpend.toLocaleString()}` : "-"}
                     </td>
                     <td style={{ ...styles.td, color: t.textSecondary }}>
-                      {c.orders != null ? c.orders : "—"}
+                      {c.orders != null ? c.orders : "-"}
                     </td>
                     <td style={{ ...styles.td, color: t.textSecondary }}>
-                      {c.avgOrder != null ? `€${c.avgOrder.toLocaleString()}` : "—"}
+                      {c.avgOrder != null ? `€${c.avgOrder.toLocaleString()}` : "-"}
                     </td>
                     <td style={{ ...styles.td, color: t.textSecondary }}>
-                      {c.lastOrder || "—"}
+                      {c.lastOrder || "-"}
                     </td>
                     <td style={{ ...styles.td, color: t.textSecondary }}>{c.createDate}</td>
                     <td style={{ ...styles.td }}>
@@ -306,7 +304,7 @@ function Customers() {
   );
 }
  
-// THEMES
+// THEME
 const light = {
   textPrimary:   "#1a2a6c",
   textSecondary: "#555",
