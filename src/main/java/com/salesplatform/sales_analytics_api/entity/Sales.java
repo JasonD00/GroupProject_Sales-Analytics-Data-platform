@@ -1,18 +1,66 @@
 package com.salesplatform.sales_analytics_api.entity;
 
-/*  SQL Client Template
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Immutable;
+import java.time.LocalDate;
 
-    sales_ord_num NVARCHAR(50),
-    sales_prd_key NVARCHAR(50),
-    sales_client_id INT,
-    sales_order_dt INT,
-    sales_ship_dt INT,
-    sales_due_dt INT,
-    sales_sales INT,
-    sales_quantity INT,
-    sales_price INT
+/*  SQL Product (Changed)
 
+    Source ---> Target Mapping = gold layer
+    This entity represents the view = fact.sales in the gold layer of the db
+
+    Previous mock data has been changed to represent the complete DB
+
+    @Entity Male the class a JPA entity
+    @Table Map entity to a db table or view
+    @Id define the primary key
+    @Column map field to column
  */
 
+@Entity
+@Table(name = "fact_sales", schema = "gold")
+@Immutable
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Sales {
+
+    @Id
+    @Column(name = "order_number", length = 50)
+    private String orderNumber;
+
+    @Column(name = "client_key")
+    private Long clientKey;
+
+    @Column(name = "product_key")
+    private Long productKey;
+
+    @Column(name = "territory_key")
+    private Long territoryKey;
+
+    @Column(name = "invoice_status_key")
+    private Long invoiceStatusKey;
+
+    @Column(name = "order_date")
+    private LocalDate orderDate;
+
+    @Column(name = "ship_date")
+    private LocalDate shipDate;
+
+    @Column(name = "due_date")
+    private LocalDate dueDate;
+
+    @Column(name = "sales_amount")
+    private Double salesAmount;
+
+    @Column(name = "quantity")
+    private Integer quantity;
+
+    @Column(name = "price")
+    private Double price;
 }
