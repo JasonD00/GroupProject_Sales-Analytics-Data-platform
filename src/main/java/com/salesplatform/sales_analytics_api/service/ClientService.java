@@ -16,7 +16,7 @@ public class ClientService {
     }
 
     public List<Client> getAllClients() {
-        return repository.findAll();
+        return repository.findClientsWithSales();
     }
 
     public Client saveClient(Client client) {

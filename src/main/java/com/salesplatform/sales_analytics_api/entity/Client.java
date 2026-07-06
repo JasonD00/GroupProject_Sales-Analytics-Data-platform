@@ -48,4 +48,13 @@ public class Client {
 
     @Column(name = "create_date")
     private LocalDate clientCreateDate;
+
+    @Column(name = "total_spend")
+    private Double totalSpend;
+
+    @Column(name = "orders")
+    private Integer orders;
+
+    @Column(name = "last_order")
+    private LocalDate lastOrder;
 }
