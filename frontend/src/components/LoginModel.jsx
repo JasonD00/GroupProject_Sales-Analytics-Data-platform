@@ -1,35 +1,37 @@
 /*
-  Overview:
-  Sign in model that gets the username, password and subscription tier
-  Calls "login()" from AuthContext when submit button is pressed
+    Calls the backend API to verify user information when logging in
 
-  Needs to be replaced with the API call when backend is connected
+    Flow:
+      1. User enters username + password
+      2. Sends POST /api/auth/login to Spring Boot
+      3. If successful - stores user in AuthContext -> closes model -> redirects to /dashboard
+      4. If failed -> shows error message
 */
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
- 
+
 function LoginModel() {
   const { login, closeLoginModel } = useAuth();
-  const { isDark } = useTheme();
+  const { isDark }                 = useTheme();
+  const navigate                   = useNavigate();
   const t = isDark ? dark : light;
- 
-  const [username,   setUsername]   = useState("");
-  const [password,   setPassword]   = useState("");
-  const [error,      setError]      = useState("");
-  const [isLoading,  setIsLoading]  = useState(false);
- 
+
+  const [username,  setUsername]  = useState("");
+  const [password,  setPassword]  = useState("");
+  const [error,     setError]     = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleLogin = async () => {
-    // Basic validation
     if (!username.trim()) { setError("Please enter your username"); return; }
     if (!password.trim()) { setError("Please enter your password"); return; }
- 
+
     setIsLoading(true);
     setError("");
- 
+
     try {
-      // Call Spring Boot login endpoint
       const response = await fetch("http://localhost:8080/api/auth/login", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -38,43 +40,40 @@ function LoginModel() {
           password: password,
         }),
       });
- 
+
       if (!response.ok) {
-        // 401 = wrong credentials
         setError("Invalid username or password");
         return;
       }
- 
-      // Parse the response — { username, tier }
+
       const data = await response.json();
- 
+
       // Store user in AuthContext
       login({
         username: data.username,
-        tier: data.tier,
-        token: data.token,    
+        tier:     data.tier,
+        token:    data.token,
       });
- 
-      // Close the modal
+
+      // Close modal and redirect to dashboard
       closeLoginModel();
- 
+      navigate("/dashboard");
+
     } catch (err) {
-      // Network error — backend not running etc
       setError("Could not connect to server. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
- 
-  // Allow login on Enter key press
+
   const handleKeyDown = (e) => {
     if (e.key === "Enter") handleLogin();
   };
- 
+
   return (
     <div style={styles.overlay}>
       <div style={{ ...styles.modal, background: t.cardBg, border: `1px solid ${t.border}` }}>
- 
+
         {/* Header */}
         <div style={styles.header}>
           <div>
@@ -90,14 +89,12 @@ function LoginModel() {
             x
           </button>
         </div>
- 
-        {/* Error message */}
+
+        {/* Error */}
         {error && (
-          <div style={styles.errorBox}>
-            {error}
-          </div>
+          <div style={styles.errorBox}>{error}</div>
         )}
- 
+
         {/* Username */}
         <div style={styles.field}>
           <label style={{ ...styles.label, color: t.textSecondary }}>Username</label>
@@ -117,7 +114,7 @@ function LoginModel() {
             }}
           />
         </div>
- 
+
         {/* Password */}
         <div style={styles.field}>
           <label style={{ ...styles.label, color: t.textSecondary }}>Password</label>
@@ -137,7 +134,7 @@ function LoginModel() {
             }}
           />
         </div>
- 
+
         {/* Submit */}
         <button
           style={{
@@ -150,13 +147,12 @@ function LoginModel() {
         >
           {isLoading ? "Signing in..." : "Sign In"}
         </button>
- 
+
       </div>
     </div>
   );
 }
- 
-// THEME
+
 const light = {
   textPrimary:   "#1a2a6c",
   textSecondary: "#555",
@@ -164,7 +160,7 @@ const light = {
   border:        "#e0e4ef",
   inputBg:       "#f8f9fc",
 };
- 
+
 const dark = {
   textPrimary:   "#e2e8f0",
   textSecondary: "#94a3b8",
@@ -172,8 +168,7 @@ const dark = {
   border:        "#334155",
   inputBg:       "#0f172a",
 };
- 
-// STYLING
+
 const styles = {
   overlay: {
     position:       "fixed",
@@ -254,5 +249,5 @@ const styles = {
     marginTop:    "4px",
   },
 };
- 
+
 export default LoginModel;

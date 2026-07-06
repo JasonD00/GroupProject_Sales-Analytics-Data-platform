@@ -1,3 +1,9 @@
+/*
+  Main layout, renders the sidebar, topbar and the currently active page
+  components based on activeNav state
+  Also renders the login model when its
+ */
+
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";

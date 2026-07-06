@@ -216,14 +216,14 @@ function Sales() {
   const totalSales    = sales.reduce((s, o) => s + (o.salesAmount || 0), 0);
   const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
 
-  // Fulfilment — avg days it takes an order to ship
+  // Fulfilment - avg days it takes an order to ship
   const avgFulfilment = (() => {
     const diffs = sales
       .filter(s => s.orderDate && s.shipDate)
       .map(s => Math.floor((new Date(s.shipDate) - new Date(s.orderDate)) / 86400000));
     return diffs.length > 0
       ? (diffs.reduce((a, b) => a + b, 0) / diffs.length).toFixed(1)
-      : "—";
+      : "-";
   })();
 
   if (!user) {
@@ -240,10 +240,10 @@ function Sales() {
       {/* Summary Cards */}
       <div style={styles.summaryGrid}>
         {[
-          { label: "Total Orders",     value: loading ? "—" : totalOrders.toLocaleString(),              accent: t.accentLight  },
-          { label: "Total Revenue",    value: loading ? "—" : `€${(totalSales/1000).toFixed(1)}K`,       accent: t.successLight },
-          { label: "Avg Order Value",  value: loading ? "—" : `€${avgOrderValue.toFixed(0)}`,            accent: t.accentLight  },
-          { label: "Avg Ship Time",    value: loading ? "—" : `${avgFulfilment} days`,                   accent: t.warningLight },
+          { label: "Total Orders",     value: loading ? "-" : totalOrders.toLocaleString(),              accent: t.accentLight  },
+          { label: "Total Revenue",    value: loading ? "-" : `€${(totalSales/1000).toFixed(1)}K`,       accent: t.successLight },
+          { label: "Avg Order Value",  value: loading ? "-" : `€${avgOrderValue.toFixed(0)}`,            accent: t.accentLight  },
+          { label: "Avg Ship Time",    value: loading ? "-" : `${avgFulfilment} days`,                   accent: t.warningLight },
         ].map((card) => (
           <div
             key={card.label}
@@ -437,7 +437,7 @@ function Sales() {
                       </td>
                       <td style={{ ...styles.td, color: t.textSecondary }}>{s.dueDate}</td>
                       <td style={{ ...styles.td, color: t.textSecondary }}>
-                        {shipDays != null ? `${shipDays}d` : "—"}
+                        {shipDays != null ? `${shipDays}d` : "-"}
                       </td>
                       <td style={{ ...styles.td, color: t.textSecondary }}>{s.quantity}</td>
                       <td style={{ ...styles.td, color: t.textSecondary }}>
