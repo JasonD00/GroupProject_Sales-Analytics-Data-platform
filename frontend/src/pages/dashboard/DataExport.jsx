@@ -19,7 +19,6 @@ function DataExport() {
 
   const FORMAT_OPTIONS = [
     { id: "csv", label: "CSV", description: "Best for spreadsheets" },
-    { id: "pdf", label: "PDF", description: "Professional reports" },
     { id: "excel", label: "Excel", description: "Excel workbook format" },
     { id: "json", label: "JSON", description: "Data interchange format" },
   ];
@@ -37,26 +36,27 @@ function DataExport() {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/export?dataType=${selectedData}&format=${selectedFormat}&dateRange=${dateRange}`
+        `http://localhost:8080/api/export?dataType=customers&format=${selectedFormat}&dateRange=${dateRange}`
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(errorText);
         throw new Error("Export failed");
       }
 
       const blob = await response.blob();
-      const data = DATA_OPTIONS.find((d) => d.id === selectedData);
 
       let fileExtension = selectedFormat;
       if (selectedFormat === "excel") {
-  fileExtension = "xls";
-}
+        fileExtension = "xls";
+      }
 
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
 
       link.href = url;
-      link.download = `${data.label}-${dateRange}.${fileExtension}`;
+      link.download = `Customer Data-${dateRange}.${fileExtension}`;
 
       document.body.appendChild(link);
       link.click();
@@ -64,9 +64,9 @@ function DataExport() {
 
       window.URL.revokeObjectURL(url);
 
-      alert(`✓ Successfully exported ${data.label} as ${selectedFormat.toUpperCase()}`);
+      alert(`✓ Successfully exported Customer Data as ${selectedFormat.toUpperCase()}`);
     } catch (error) {
-      console.error(error);
+      console.error("Export error:", error);
       alert("Export failed. Please check that the backend is running.");
     } finally {
       setIsExporting(false);
@@ -124,6 +124,7 @@ function DataExport() {
               {FORMAT_OPTIONS.map((format) => (
                 <button
                   key={format.id}
+                  type="button"
                   onClick={() => setSelectedFormat(format.id)}
                   style={{
                     ...styles.formatCard,
@@ -174,6 +175,7 @@ function DataExport() {
             background: t.accent,
             color: "#fff",
             opacity: isExporting ? 0.7 : 1,
+            cursor: isExporting ? "not-allowed" : "pointer",
           }}
         >
           {isExporting ? "Exporting..." : `Export ${selectedFormat.toUpperCase()}`}
@@ -204,101 +206,25 @@ const dark = {
 };
 
 const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "24px",
-  },
-  header: {
-    marginBottom: "8px",
-  },
-  title: {
-    fontSize: "28px",
-    fontWeight: "700",
-    margin: "0 0 8px 0",
-  },
-  subtitle: {
-    fontSize: "14px",
-    margin: 0,
-  },
-  card: {
-    padding: "24px",
-    borderRadius: "8px",
-  },
-  cardTitle: {
-    fontSize: "18px",
-    fontWeight: "600",
-    margin: "0 0 20px 0",
-  },
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    gap: "24px",
-    marginBottom: "24px",
-  },
-  formGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  },
-  label: {
-    fontSize: "13px",
-    fontWeight: "600",
-  },
-  radioGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  radioLabel: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    cursor: "pointer",
-    fontSize: "14px",
-  },
-  radioInput: {
-    cursor: "pointer",
-  },
-  recordCount: {
-    fontSize: "12px",
-  },
-  formatGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-    gap: "12px",
-  },
-  formatCard: {
-    padding: "16px",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    textAlign: "center",
-    transition: "all 0.2s",
-  },
-  formatName: {
-    fontSize: "14px",
-    fontWeight: "600",
-    marginBottom: "4px",
-  },
-  formatDesc: {
-    fontSize: "12px",
-    opacity: 0.8,
-  },
-  select: {
-    padding: "8px 12px",
-    borderRadius: "6px",
-    fontSize: "14px",
-    fontFamily: "Arial, sans-serif",
-  },
-  exportBtn: {
-    padding: "10px 24px",
-    border: "none",
-    borderRadius: "6px",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
+  container: { display: "flex", flexDirection: "column", gap: "24px" },
+  header: { marginBottom: "8px" },
+  title: { fontSize: "28px", fontWeight: "700", margin: "0 0 8px 0" },
+  subtitle: { fontSize: "14px", margin: 0 },
+  card: { padding: "24px", borderRadius: "8px" },
+  cardTitle: { fontSize: "18px", fontWeight: "600", margin: "0 0 20px 0" },
+  formGrid: { display: "grid", gridTemplateColumns: "1fr", gap: "24px", marginBottom: "24px" },
+  formGroup: { display: "flex", flexDirection: "column", gap: "12px" },
+  label: { fontSize: "13px", fontWeight: "600" },
+  radioGroup: { display: "flex", flexDirection: "column", gap: "8px" },
+  radioLabel: { display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px" },
+  radioInput: { cursor: "pointer" },
+  recordCount: { fontSize: "12px" },
+  formatGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px" },
+  formatCard: { padding: "16px", borderRadius: "6px", cursor: "pointer", textAlign: "center", transition: "all 0.2s" },
+  formatName: { fontSize: "14px", fontWeight: "600", marginBottom: "4px" },
+  formatDesc: { fontSize: "12px", opacity: 0.8 },
+  select: { padding: "8px 12px", borderRadius: "6px", fontSize: "14px", fontFamily: "Arial, sans-serif" },
+  exportBtn: { padding: "10px 24px", border: "none", borderRadius: "6px", fontSize: "14px", fontWeight: "600" },
 };
 
 export default DataExport;
