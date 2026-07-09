@@ -42,7 +42,7 @@ const FEATURE_ITEMS = [
   { id: "settings", label: "Settings",    tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
 ];
 
-// Supports both uppercase (from backend) and capitalised (legacy)
+// Supports uppercase (from backend) and capitalised
 const TIER_COLORS = {
   GROWTH:     { bg: "#dcfce7", text: "#16a34a" },
   PRO:        { bg: "#dbeafe", text: "#1d4ed8" },
@@ -70,13 +70,12 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
     return item.tiers.includes(user.tier);
   });
 
-  // Safe tier colour lookup with fallback
   const tierColors = user
   ? (TIER_COLORS[user.tier] || DEFAULT_TIER_COLOR)
   : null;
 
 
-  // Display tier capitalised e.g. ENTERPRISE → Enterprise
+  // Display tier capitalised e.g. ENTERPRISE -> Enterprise
   const displayTier = user?.tier
     ? user.tier.charAt(0) + user.tier.slice(1).toLowerCase()
     : "";
