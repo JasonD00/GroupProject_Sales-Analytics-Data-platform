@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import LoginModel from "../components/LoginModel";
 
 function AboutUs() {
-  const navigate              = useNavigate();
+  const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
   const { user, openLoginModel, logout, showLoginModel } = useAuth();
   const t = isDark ? dark : light;
@@ -57,7 +57,7 @@ function AboutUs() {
         </div>
       </nav>
 
-      <div style={{ ...styles.pageWrapper, background: t.pageBg }}>
+      <main style={{ ...styles.pageWrapper, background: t.pageBg }}>
 
         {/* Hero */}
         <section style={styles.heroSection}>
@@ -120,7 +120,7 @@ function AboutUs() {
             </p>
             <div style={{ ...styles.solutionBox, background: t.cardBg, border: `1px solid ${t.border}` }}>
               <div style={{ ...styles.solutionPreview, background: t.pageBg }}>
-                <h4 style={{ color: t.textPrimary, marginTop: 0 }}>Dashboard Includes:</h4>
+                <h3 style={{ color: t.textPrimary, marginTop: 0, fontSize: "16px" }}>Dashboard Includes:</h3>
                 <ul style={styles.featureList}>
                   <li style={{ color: t.textSecondary }}>Real-time KPIs and performance metrics</li>
                   <li style={{ color: t.textSecondary }}>Revenue trends and forecasting</li>
@@ -228,7 +228,7 @@ function AboutUs() {
           </div>
         </footer>
 
-      </div>
+      </main>
       {showLoginModel && <LoginModel />}
     </div>
   );
@@ -486,7 +486,7 @@ const styles = {
     top:          "-12px",
     left:         "50%",
     transform:    "translateX(-50%)",
-    background:   "#f59e0b",
+    background:   "#c2650a",
     color:        "#fff",
     fontSize:     "11px",
     fontWeight:   "700",
