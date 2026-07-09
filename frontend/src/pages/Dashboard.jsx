@@ -16,7 +16,7 @@ import Products from "./dashboard/Products";
 import Customers from "./dashboard/Customers";
 import Territory from "./dashboard/Territory";
 import Invoices from "./dashboard/Invoices";
-//import Reports from "./dashboard/Reports";
+import Summaries from "./dashboard/Summaries";
 import DataExport from "./dashboard/DataExport";
 import Settings from "./dashboard/Settings";
 
@@ -27,7 +27,7 @@ const pageTitles = {
   customers:    "Customers",
   territory:     "Territory",
   invoices:     "Invoices",
-  reports:      "Performance Reports",
+  summaries:      "Summaries",
   export:       "Data Export",
   settings:     "Settings",
 };
@@ -57,7 +57,7 @@ function Dashboard() {
           {activeNav === "customers"    && <Customers />}
           {activeNav === "territory"    && <Territory />}
           {activeNav === "invoices"     && <Invoices />}
-          {activeNav === "reports"      && <Reports />}
+          {activeNav === "summaries"    && <Summaries />}
           {activeNav === "export"       && <DataExport />}
           {activeNav === "settings"     && <Settings />}
         </div>

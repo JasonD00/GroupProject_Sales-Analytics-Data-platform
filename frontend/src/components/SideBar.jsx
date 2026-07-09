@@ -23,7 +23,7 @@
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
-// Main navigation items — tier controls visibility
+// Main navigation items
 // Tiers are uppercase to match what the backend JWT returns
 const NAV_ITEMS = [
   { id: "overview",   label: "Overview",   tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
@@ -32,6 +32,7 @@ const NAV_ITEMS = [
   { id: "products",   label: "Products",   tiers: ["ENTERPRISE"]                  },
   { id: "territory",  label: "Territory",  tiers: ["PRO", "ENTERPRISE"]           },
   { id: "invoices",   label: "Invoices",   tiers: ["PRO", "ENTERPRISE"]           },
+  { id: "summaries",   label: "Summaries", tiers: ["ENTERPRISE"]                  },
 ];
 
 // Feature items shown below a divider
@@ -58,7 +59,7 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
   const { isDark } = useTheme();
   const t          = isDark ? dark : light;
 
-  // Filter nav items by tier — show only Overview if not logged in
+  // Filter nav items by tier - show only Overview if not logged in
   const visibleNavItems = NAV_ITEMS.filter((item) => {
     if (!user) return item.id === "overview";
     return item.tiers.includes(user.tier);
@@ -154,7 +155,7 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
         })}
       </nav>
 
-      {/* Tier badge — shown when expanded */}
+      {/* Tier badge */}
       {user && sidebarOpen && (
         <div style={styles.bottomSection}>
           <div style={{ ...styles.tierBadge, background: tierColors.bg, color: tierColors.text }}>
