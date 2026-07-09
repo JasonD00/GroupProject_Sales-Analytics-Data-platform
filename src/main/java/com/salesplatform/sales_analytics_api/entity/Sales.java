@@ -14,7 +14,11 @@ package com.salesplatform.sales_analytics_api.entity;
 
  */
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "crm_sales_info", schema = "bronze")
@@ -24,8 +28,15 @@ public class Sales {
     @Column(name = "sales_ord_num")
     private String orderNumber;
 
-    @Column(name = "sales_prd_key")
-    private String productKey;
+
+    @ManyToOne
+    @JoinColumn(
+        name = "sales_prd_key",
+        referencedColumnName = "prod_key"
+    )
+    @JsonBackReference
+    private Product product;
+
 
     @Column(name = "sales_client_id")
     private Integer clientId;
@@ -48,8 +59,11 @@ public class Sales {
     @Column(name = "sales_price")
     private Integer price;
 
+
+    // Default constructor
     public Sales() {
     }
+
 
     public String getOrderNumber() {
         return orderNumber;
@@ -59,13 +73,15 @@ public class Sales {
         this.orderNumber = orderNumber;
     }
 
-    public String getProductKey() {
-        return productKey;
+
+    public Product getProduct() {
+        return product;
     }
 
-    public void setProductKey(String productKey) {
-        this.productKey = productKey;
+    public void setProduct(Product product) {
+        this.product = product;
     }
+
 
     public Integer getClientId() {
         return clientId;
@@ -75,6 +91,7 @@ public class Sales {
         this.clientId = clientId;
     }
 
+
     public Integer getOrderDate() {
         return orderDate;
     }
@@ -82,6 +99,7 @@ public class Sales {
     public void setOrderDate(Integer orderDate) {
         this.orderDate = orderDate;
     }
+
 
     public Integer getShipDate() {
         return shipDate;
@@ -91,6 +109,7 @@ public class Sales {
         this.shipDate = shipDate;
     }
 
+
     public Integer getDueDate() {
         return dueDate;
     }
@@ -98,6 +117,7 @@ public class Sales {
     public void setDueDate(Integer dueDate) {
         this.dueDate = dueDate;
     }
+
 
     public Integer getSalesAmount() {
         return salesAmount;
@@ -107,6 +127,7 @@ public class Sales {
         this.salesAmount = salesAmount;
     }
 
+
     public Integer getQuantity() {
         return quantity;
     }
@@ -114,6 +135,7 @@ public class Sales {
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
+
 
     public Integer getPrice() {
         return price;

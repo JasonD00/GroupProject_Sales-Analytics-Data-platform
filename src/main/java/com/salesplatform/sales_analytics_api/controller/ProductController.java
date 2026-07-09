@@ -16,10 +16,18 @@ public class ProductController {
         this.service = service;
     }
 
+
     @GetMapping
     public List<Product> getAllProducts() {
         return service.getAllProducts();
     }
+
+
+    @GetMapping("/{id}")
+    public Product getProductById(@PathVariable Integer id) {
+        return service.getProductById(id);
+    }
+
 
     @PostMapping
     public Product createProduct(@RequestBody Product product) {

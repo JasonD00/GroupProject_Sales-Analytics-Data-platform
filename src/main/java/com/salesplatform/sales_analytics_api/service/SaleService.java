@@ -15,9 +15,16 @@ public class SaleService {
         this.repository = repository;
     }
 
+
     public List<Sales> getAllSales() {
         return repository.findAll();
     }
+
+
+    public Sales getSaleById(String orderNumber) {
+        return repository.findById(orderNumber).orElse(null);
+    }
+
 
     public Sales saveSale(Sales sale) {
         return repository.save(sale);

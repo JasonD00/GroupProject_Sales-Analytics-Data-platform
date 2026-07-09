@@ -19,6 +19,10 @@ public class ProductService {
         return repository.findAll();
     }
 
+    public Product getProductById(Integer id) {
+        return repository.findById(id).orElse(null);
+    }
+
     public Product saveProduct(Product product) {
         return repository.save(product);
     }

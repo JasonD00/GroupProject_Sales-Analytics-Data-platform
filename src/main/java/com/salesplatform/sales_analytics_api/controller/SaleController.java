@@ -16,10 +16,18 @@ public class SaleController {
         this.service = service;
     }
 
+
     @GetMapping
     public List<Sales> getAllSales() {
         return service.getAllSales();
     }
+
+
+    @GetMapping("/{orderNumber}")
+    public Sales getSaleById(@PathVariable String orderNumber) {
+        return service.getSaleById(orderNumber);
+    }
+
 
     @PostMapping
     public Sales createSale(@RequestBody Sales sale) {
