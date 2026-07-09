@@ -1,26 +1,54 @@
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
+import LoginModel from "../components/LoginModel";
 
 function AboutUs() {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
+  const { user, openLoginModel, logout, showLoginModel } = useAuth();
   const t = isDark ? dark : light;
 
   return (
     <div style={styles.container}>
-      
+
+      {/* Top Nav */}
       <nav style={{ ...styles.topNav, background: t.cardBg, borderBottom: `1px solid ${t.border}` }}>
         <div style={styles.navContent}>
           <h1 style={{ ...styles.logo, color: t.textPrimary }}>Sales Analytics</h1>
           <div style={styles.navButtons}>
-            <button 
-              style={{ ...styles.navBtn, color: t.textPrimary }} 
-              onClick={() => navigate('/dashboard')}
+
+            {/* Sign In button */}
+            {!user && (
+              <button
+                style={{ ...styles.signInBtn }}
+                onClick={openLoginModel}
+              >
+                Sign In
+              </button>
+            )}
+
+            {/* Dashboard button */}
+            <button
+              style={{ ...styles.navBtn, color: t.textPrimary }}
+              onClick={() => navigate("/dashboard")}
             >
               Dashboard
             </button>
-            <button 
-              style={{ ...styles.themeBtn, background: t.toggleBg, color: t.textPrimary }} 
+
+            {/* Sign Out  */}
+            {user && (
+              <button
+                style={{ ...styles.signInBtn }}
+                onClick={() => logout()}
+              >
+                Sign Out
+              </button>
+            )}
+
+            {/* Theme toggle */}
+            <button
+              style={{ ...styles.themeBtn, background: t.toggleBg, color: t.textPrimary }}
               onClick={toggleTheme}
             >
               {isDark ? "Light" : "Dark"}
@@ -29,28 +57,39 @@ function AboutUs() {
         </div>
       </nav>
 
-      <div style={{ ...styles.pageWrapper, background: t.pageBg }}>
-        
+      <main style={{ ...styles.pageWrapper, background: t.pageBg }}>
+
+        {/* Hero */}
         <section style={styles.heroSection}>
           <div style={styles.heroContent}>
             <h2 style={{ ...styles.heroTitle, color: t.textPrimary }}>
               Transform Your Sales Data Into Actionable Insights
             </h2>
             <p style={{ ...styles.heroDescription, color: t.textSecondary }}>
-              A modern platform that brings all your sales metrics together in one place. 
+              A modern platform that brings all your sales metrics together in one place.
               Make data-driven decisions faster and close more deals with real-time visibility into your pipeline.
             </p>
             <div style={styles.heroButtons}>
-              <button 
-                style={styles.primaryButton} 
-                onClick={() => navigate('/dashboard')}
-              >
-                Get Started Free
-              </button>
+              {user ? (
+                <button
+                  style={styles.primaryButton}
+                  onClick={() => navigate("/dashboard")}
+                >
+                  Go to Dashboard
+                </button>
+              ) : (
+                <button
+                  style={styles.primaryButton}
+                  onClick={openLoginModel}
+                >
+                  Sign In to Get Started
+                </button>
+              )}
             </div>
           </div>
         </section>
 
+        {/* Problems */}
         <section style={{ ...styles.section, background: t.cardBg }}>
           <div style={styles.sectionInner}>
             <h2 style={{ ...styles.sectionTitle, color: t.textPrimary }}>
@@ -59,22 +98,18 @@ function AboutUs() {
             <p style={{ ...styles.sectionSubtitle, color: t.textSecondary }}>
               Most teams struggle with fragmented data across multiple systems, manual reporting, and delayed insights.
             </p>
-            
             <div style={styles.problemsGrid}>
               {PROBLEMS.map((problem, idx) => (
                 <div key={idx} style={{ ...styles.problemCard, background: t.pageBg, border: `1px solid ${t.border}` }}>
-                  <h3 style={{ ...styles.problemTitle, color: t.textPrimary }}>
-                    {problem.title}
-                  </h3>
-                  <p style={{ ...styles.problemText, color: t.textSecondary }}>
-                    {problem.description}
-                  </p>
+                  <h3 style={{ ...styles.problemTitle, color: t.textPrimary }}>{problem.title}</h3>
+                  <p style={{ ...styles.problemText, color: t.textSecondary }}>{problem.description}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
+        {/* Solution */}
         <section style={styles.section}>
           <div style={styles.sectionInner}>
             <h2 style={{ ...styles.sectionTitle, color: t.textPrimary }}>
@@ -83,10 +118,9 @@ function AboutUs() {
             <p style={{ ...styles.sectionSubtitle, color: t.textSecondary }}>
               Get everything you need to manage sales performance in a single, intuitive dashboard.
             </p>
-            
             <div style={{ ...styles.solutionBox, background: t.cardBg, border: `1px solid ${t.border}` }}>
               <div style={{ ...styles.solutionPreview, background: t.pageBg }}>
-                <h4 style={{ color: t.textPrimary, marginTop: 0 }}>Dashboard Includes:</h4>
+                <h3 style={{ color: t.textPrimary, marginTop: 0, fontSize: "16px" }}>Dashboard Includes:</h3>
                 <ul style={styles.featureList}>
                   <li style={{ color: t.textSecondary }}>Real-time KPIs and performance metrics</li>
                   <li style={{ color: t.textSecondary }}>Revenue trends and forecasting</li>
@@ -99,6 +133,7 @@ function AboutUs() {
           </div>
         </section>
 
+        {/* Pricing */}
         <section style={{ ...styles.section, background: t.cardBg }}>
           <div style={styles.sectionInner}>
             <h2 style={{ ...styles.sectionTitle, color: t.textPrimary }}>
@@ -107,67 +142,50 @@ function AboutUs() {
             <p style={{ ...styles.sectionSubtitle, color: t.textSecondary }}>
               Start free, upgrade when you're ready. No credit card required.
             </p>
-            
             <div style={styles.pricingGrid}>
               {PRICING.map((plan, idx) => (
-                <div 
-                  key={idx} 
-                  style={{ 
-                    ...styles.pricingCard, 
+                <div
+                  key={idx}
+                  style={{
+                    ...styles.pricingCard,
                     background: plan.highlighted ? t.accent : t.pageBg,
-                    border: plan.highlighted ? "none" : `1px solid ${t.border}`,
+                    border:     plan.highlighted ? "none" : `1px solid ${t.border}`,
                   }}
                 >
                   {plan.highlighted && (
                     <div style={styles.popularLabel}>Most Popular</div>
                   )}
-                  
-                  <h3 style={{ 
-                    ...styles.pricingName, 
-                    color: plan.highlighted ? "#fff" : t.textPrimary 
-                  }}>
+                  <h3 style={{ ...styles.pricingName, color: plan.highlighted ? "#fff" : t.textPrimary }}>
                     {plan.name}
                   </h3>
-                  
-                  <div style={{ 
-                    ...styles.pricingPrice, 
-                    color: plan.highlighted ? "#fff" : t.textPrimary 
-                  }}>
+                  <div style={{ ...styles.pricingPrice, color: plan.highlighted ? "#fff" : t.textPrimary }}>
                     {plan.price}
                   </div>
-                  
-                  <p style={{ 
-                    ...styles.pricingFor, 
-                    color: plan.highlighted ? "rgba(255,255,255,0.9)" : t.textSecondary 
-                  }}>
+                  <p style={{ ...styles.pricingFor, color: plan.highlighted ? "rgba(255,255,255,0.9)" : t.textSecondary }}>
                     {plan.description}
                   </p>
-                  
-                  <button 
-                    style={{ 
-                      ...styles.pricingButton, 
+                  <button
+                    style={{
+                      ...styles.pricingButton,
                       background: plan.highlighted ? "#fff" : t.accent,
-                      color: plan.highlighted ? t.accent : "#fff",
+                      color:      plan.highlighted ? t.accent : "#fff",
                     }}
-                    onClick={() => navigate('/dashboard')}
+                    onClick={user ? () => navigate("/dashboard") : openLoginModel}
                   >
-                    Get Started
+                    {user ? "Go to Dashboard" : "Get Started"}
                   </button>
-
                   <ul style={styles.pricingFeatures}>
                     {plan.features.map((feature, fidx) => (
-                      <li 
-                        key={fidx} 
+                      <li
+                        key={fidx}
                         style={{
                           ...styles.pricingFeature,
-                          color: feature.included 
+                          color: feature.included
                             ? (plan.highlighted ? "rgba(255,255,255,0.9)" : t.textSecondary)
-                            : (plan.highlighted ? "rgba(255,255,255,0.4)" : "#ccc")
+                            : (plan.highlighted ? "rgba(255,255,255,0.4)" : "#ccc"),
                         }}
                       >
-                        <span style={styles.featureCheck}>
-                          {feature.included ? "✓" : "—"}
-                        </span>
+                        <span style={styles.featureCheck}>{feature.included ? "✓" : "-"}</span>
                         {feature.name}
                       </li>
                     ))}
@@ -178,6 +196,7 @@ function AboutUs() {
           </div>
         </section>
 
+        {/* Final CTA */}
         <section style={styles.section}>
           <div style={styles.finalCTABox}>
             <h2 style={{ ...styles.finalCTATitle, color: t.textPrimary }}>
@@ -187,16 +206,20 @@ function AboutUs() {
               Start making data-driven decisions today. Get instant access to real-time insights and performance metrics.
             </p>
             <div style={styles.finalCTAButtons}>
-              <button 
-                style={styles.primaryButton} 
-                onClick={() => navigate('/dashboard')}
-              >
-                Start Free Trial
-              </button>
+              {user ? (
+                <button style={styles.primaryButton} onClick={() => navigate("/dashboard")}>
+                  Go to Dashboard
+                </button>
+              ) : (
+                <button style={styles.primaryButton} onClick={openLoginModel}>
+                  Sign In to Get Started
+                </button>
+              )}
             </div>
           </div>
         </section>
 
+        {/* Footer */}
         <footer style={{ ...styles.footer, background: t.cardBg, borderTop: `1px solid ${t.border}` }}>
           <div style={styles.sectionInner}>
             <p style={{ ...styles.footerText, color: t.textSecondary }}>
@@ -205,7 +228,8 @@ function AboutUs() {
           </div>
         </footer>
 
-      </div>
+      </main>
+      {showLoginModel && <LoginModel />}
     </div>
   );
 }
@@ -213,335 +237,330 @@ function AboutUs() {
 // DATA
 const PROBLEMS = [
   {
-    title: "Scattered Data",
-    description: "Sales data lives in multiple systems—CRM, spreadsheets, email. Finding what you need takes hours instead of seconds."
+    title:       "Scattered Data",
+    description: "Sales data lives in multiple systems-CRM, spreadsheets, email. Finding what you need takes hours instead of seconds.",
   },
   {
-    title: "Manual Reporting",
-    description: "Your team spends hours every week compiling spreadsheets and creating reports instead of selling."
+    title:       "Manual Reporting",
+    description: "Your team spends hours every week compiling spreadsheets and creating reports instead of selling.",
   },
   {
-    title: "Delayed Insights",
-    description: "By the time you spot a trend, the opportunity is gone. You need real-time visibility, not last week's numbers."
-  }
+    title:       "Delayed Insights",
+    description: "By the time you spot a trend, the opportunity is gone. You need real-time visibility, not last week's numbers.",
+  },
 ];
 
 const PRICING = [
-  { 
-    name: "Growth", 
-    price: "€29/mo", 
+  {
+    name:        "Growth",
+    price:       "€29/mo",
     description: "Perfect for small teams",
     highlighted: false,
     features: [
-      { name: "Sales analytics dashboard", included: true },
-      { name: "Custom Dashboard (themes/colors)", included: true },
-      { name: "Data export (CSV, PDF)", included: true },
-      { name: "Automated alerts", included: true },
-      { name: "Performance reports - Monthly", included: true },
-    ]
+      { name: "Sales analytics dashboard",     included: true  },
+      { name: "Custom Dashboard",              included: true  },
+      { name: "Data export (CSV, PDF)",        included: true  },
+      { name: "Automated alerts",              included: true  },
+      { name: "Performance reports - Monthly", included: true  },
+    ],
   },
-  { 
-    name: "Pro", 
-    price: "€75/mo", 
+  {
+    name:        "Pro",
+    price:       "€75/mo",
     description: "For growing sales organizations",
     highlighted: true,
     features: [
-      { name: "Sales analytics dashboard", included: true },
-      { name: "Custom Dashboard (themes/colors)", included: true },
-      { name: "Data export (CSV, PDF)", included: true },
-      { name: "Automated alerts", included: true },
-      { name: "Performance reports - Custom", included: true },
-    ]
+      { name: "Sales analytics dashboard",     included: true  },
+      { name: "Custom Dashboard",              included: true  },
+      { name: "Data export (CSV, PDF)",        included: true  },
+      { name: "Automated alerts",              included: true  },
+      { name: "Performance reports - Custom",  included: true  },
+    ],
   },
-  { 
-    name: "Enterprise", 
-    price: "Custom", 
+  {
+    name:        "Enterprise",
+    price:       "Custom",
     description: "For large organizations",
     highlighted: false,
     features: [
-      { name: "Sales analytics dashboard", included: true },
-      { name: "Custom Dashboard (themes/colors)", included: true },
-      { name: "Data export (CSV, PDF)", included: true },
-      { name: "Automated alerts", included: true },
-      { name: "Performance reports - Custom", included: true },
-    ]
-  }
+      { name: "Sales analytics dashboard",     included: true  },
+      { name: "Custom Dashboard",              included: true  },
+      { name: "Data export (CSV, PDF)",        included: true  },
+      { name: "Automated alerts",              included: true  },
+      { name: "Performance reports - Custom",  included: true  },
+    ],
+  },
 ];
 
+// THEME
 const light = {
-  textPrimary: "#1a2a6c",
+  textPrimary:   "#1a2a6c",
   textSecondary: "#555",
-  cardBg: "#ffffff",
-  pageBg: "#f0f2f7",
-  border: "#e0e4ef",
-  accent: "#1a2a6c",
-  toggleBg: "#f0f2f7",
+  cardBg:        "#ffffff",
+  border:        "#e0e4ef",
+  pageBg:        "#f0f2f7",
+  accent:        "#1a2a6c",
+  toggleBg:      "#e0e4ef",
 };
 
 const dark = {
-  textPrimary: "#e2e8f0",
+  textPrimary:   "#e2e8f0",
   textSecondary: "#94a3b8",
-  cardBg: "#1e293b",
-  pageBg: "#0f172a",
-  border: "#334155",
-  accent: "#7c9fff",
-  toggleBg: "#334155",
+  cardBg:        "#1e293b",
+  border:        "#334155",
+  pageBg:        "#0f172a",
+  accent:        "#1a2a6c",
+  toggleBg:      "#334155",
 };
 
+// STYLING
 const styles = {
   container: {
-    width: "100%",
-    minHeight: "100vh",
+    minHeight:  "100vh",
+    fontFamily: "Arial, sans-serif",
   },
-
   topNav: {
-    position: "sticky",
-    top: 0,
-    zIndex: 100,
-    padding: "16px 24px",
+    position:  "sticky",
+    top:       0,
+    zIndex:    100,
+    padding:   "0 40px",
+    height:    "60px",
+    display:   "flex",
+    alignItems:"center",
   },
   navContent: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-    display: "flex",
+    display:        "flex",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems:     "center",
+    width:          "100%",
+    maxWidth:       "1200px",
+    margin:         "0 auto",
   },
   logo: {
-    fontSize: "18px",
+    margin:     0,
+    fontSize:   "20px",
     fontWeight: "700",
-    margin: 0,
   },
   navButtons: {
-    display: "flex",
-    gap: "12px",
+    display:    "flex",
     alignItems: "center",
+    gap:        "12px",
   },
   navBtn: {
     background: "transparent",
-    border: "none",
-    fontSize: "14px",
+    border:     "none",
+    fontSize:   "14px",
     fontWeight: "500",
-    cursor: "pointer",
-    padding: "8px 16px",
+    cursor:     "pointer",
+    padding:    "6px 12px",
+  },
+  signInBtn: {
+    padding:      "8px 20px",
+    background:   "#1a2a6c",
+    color:        "#fff",
+    border:       "none",
+    borderRadius: "6px",
+    fontSize:     "14px",
+    fontWeight:   "600",
+    cursor:       "pointer",
+  },
+  userRow: {
+    display:    "flex",
+    alignItems: "center",
+    gap:        "10px",
+  },
+  userLabel: {
+    fontSize:   "13px",
+    fontWeight: "500",
   },
   themeBtn: {
-    padding: "6px 14px",
-    borderRadius: "20px",
-    border: "none",
-    cursor: "pointer",
-    fontSize: "13px",
-    fontWeight: "600",
+    padding:      "7px 16px",
+    borderRadius: "6px",
+    border:       "none",
+    fontSize:     "13px",
+    fontWeight:   "500",
+    cursor:       "pointer",
   },
-
   pageWrapper: {
-    width: "100%",
-    minHeight: "100vh",
+    minHeight: "calc(100vh - 60px)",
   },
-
+  heroSection: {
+    padding:    "80px 40px",
+    maxWidth:   "1200px",
+    margin:     "0 auto",
+    textAlign:  "center",
+  },
+  heroContent: {
+    maxWidth: "700px",
+    margin:   "0 auto",
+  },
+  heroTitle: {
+    fontSize:     "36px",
+    fontWeight:   "700",
+    marginBottom: "16px",
+    lineHeight:   1.3,
+  },
+  heroDescription: {
+    fontSize:     "16px",
+    lineHeight:   1.7,
+    marginBottom: "32px",
+  },
+  heroButtons: {
+    display:        "flex",
+    justifyContent: "center",
+    gap:            "12px",
+  },
+  primaryButton: {
+    padding:      "12px 28px",
+    background:   "#1a2a6c",
+    color:        "#fff",
+    border:       "none",
+    borderRadius: "8px",
+    fontSize:     "15px",
+    fontWeight:   "600",
+    cursor:       "pointer",
+  },
   section: {
-    padding: "60px 24px",
+    padding: "60px 40px",
   },
   sectionInner: {
     maxWidth: "1200px",
-    margin: "0 auto",
+    margin:   "0 auto",
   },
   sectionTitle: {
-    fontSize: "32px",
-    fontWeight: "700",
-    textAlign: "center",
-    margin: "0 0 12px 0",
+    fontSize:     "28px",
+    fontWeight:   "700",
+    textAlign:    "center",
+    marginBottom: "12px",
   },
   sectionSubtitle: {
-    fontSize: "16px",
-    textAlign: "center",
-    margin: "0 0 40px 0",
-    lineHeight: "1.6",
+    fontSize:     "15px",
+    textAlign:    "center",
+    marginBottom: "40px",
+    lineHeight:   1.6,
   },
-
-  heroSection: {
-    padding: "80px 24px 60px",
-    textAlign: "center",
-  },
-  heroContent: {
-    maxWidth: "900px",
-    margin: "0 auto",
-  },
-  heroTitle: {
-    fontSize: "48px",
-    fontWeight: "700",
-    margin: "0 0 24px 0",
-    lineHeight: "1.2",
-  },
-  heroDescription: {
-    fontSize: "18px",
-    lineHeight: "1.6",
-    margin: "0 0 32px 0",
-  },
-  heroButtons: {
-    display: "flex",
-    gap: "16px",
-    justifyContent: "center",
-    flexWrap: "wrap",
-  },
-
-  primaryButton: {
-    padding: "14px 32px",
-    background: "#1a2a6c",
-    color: "#fff",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "15px",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  secondaryButton: {
-    padding: "14px 32px",
-    background: "transparent",
-    borderRadius: "8px",
-    fontSize: "15px",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-
   problemsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: "24px",
+    display:             "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap:                 "20px",
   },
   problemCard: {
-    padding: "28px",
-    borderRadius: "8px",
+    padding:      "24px",
+    borderRadius: "10px",
   },
   problemTitle: {
-    fontSize: "18px",
-    fontWeight: "600",
-    margin: "0 0 12px 0",
+    fontSize:     "16px",
+    fontWeight:   "600",
+    marginBottom: "8px",
   },
   problemText: {
-    fontSize: "14px",
-    lineHeight: "1.6",
-    margin: 0,
+    fontSize:   "14px",
+    lineHeight: 1.6,
+    margin:     0,
   },
-
   solutionBox: {
-    padding: "40px",
-    borderRadius: "8px",
-    maxWidth: "800px",
-    margin: "0 auto",
+    borderRadius: "10px",
+    padding:      "28px",
   },
   solutionPreview: {
-    padding: "32px",
-    borderRadius: "6px",
+    padding:      "20px",
+    borderRadius: "8px",
   },
   featureList: {
-    listStyle: "none",
-    padding: 0,
-    margin: "0",
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "12px",
-    fontSize: "14px",
-    lineHeight: "1.8",
+    paddingLeft: "20px",
+    lineHeight:  1.9,
+    fontSize:    "14px",
   },
-
   pricingGrid: {
-    display: "grid",
+    display:             "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
-    gap: "24px",
-    maxWidth: "1200px",
-    margin: "0 auto",
+    gap:                 "20px",
   },
   pricingCard: {
-    padding: "32px 24px",
-    borderRadius: "8px",
-    textAlign: "center",
-    position: "relative",
+    padding:      "28px 24px",
+    borderRadius: "10px",
+    position:     "relative",
   },
   popularLabel: {
-    position: "absolute",
-    top: "-12px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    background: "#16a34a",
-    color: "#fff",
-    padding: "4px 16px",
+    position:     "absolute",
+    top:          "-12px",
+    left:         "50%",
+    transform:    "translateX(-50%)",
+    background:   "#c2650a",
+    color:        "#fff",
+    fontSize:     "11px",
+    fontWeight:   "700",
+    padding:      "4px 14px",
     borderRadius: "20px",
-    fontSize: "12px",
-    fontWeight: "600",
+    whiteSpace:   "nowrap",
   },
   pricingName: {
-    fontSize: "18px",
-    fontWeight: "700",
-    margin: "0 0 12px 0",
+    fontSize:     "18px",
+    fontWeight:   "700",
+    marginBottom: "8px",
+    marginTop:    "8px",
   },
   pricingPrice: {
-    fontSize: "32px",
-    fontWeight: "700",
-    margin: "0 0 8px 0",
+    fontSize:     "32px",
+    fontWeight:   "700",
+    marginBottom: "4px",
   },
   pricingFor: {
-    fontSize: "14px",
-    margin: "0 0 24px 0",
+    fontSize:     "13px",
+    marginBottom: "20px",
   },
   pricingButton: {
-    padding: "10px 24px",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-    width: "100%",
+    width:        "100%",
+    padding:      "10px",
+    borderRadius: "6px",
+    border:       "none",
+    fontSize:     "14px",
+    fontWeight:   "600",
+    cursor:       "pointer",
     marginBottom: "20px",
   },
   pricingFeatures: {
-    listStyle: "none",
-    padding: "20px 0 0 0",
-    margin: "0",
-    borderTop: "1px solid rgba(0,0,0,0.1)",
-    textAlign: "left",
+    listStyle:  "none",
+    padding:    0,
+    margin:     0,
   },
   pricingFeature: {
-    fontSize: "13px",
-    padding: "10px 0",
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
+    fontSize:     "13px",
+    marginBottom: "8px",
+    display:      "flex",
+    alignItems:   "center",
+    gap:          "8px",
   },
   featureCheck: {
-    color: "#16a34a",
-    fontWeight: "bold",
+    fontWeight: "700",
+    fontSize:   "14px",
   },
-
   finalCTABox: {
-    background: "transparent",
+    maxWidth:  "600px",
+    margin:    "0 auto",
     textAlign: "center",
-    padding: "0",
   },
   finalCTATitle: {
-    fontSize: "36px",
-    fontWeight: "700",
-    margin: "0 0 16px 0",
+    fontSize:     "28px",
+    fontWeight:   "700",
+    marginBottom: "12px",
   },
   finalCTAText: {
-    fontSize: "16px",
-    lineHeight: "1.6",
-    margin: "0 0 32px 0",
+    fontSize:     "15px",
+    lineHeight:   1.6,
+    marginBottom: "28px",
   },
   finalCTAButtons: {
-    display: "flex",
-    gap: "16px",
+    display:        "flex",
     justifyContent: "center",
-    flexWrap: "wrap",
   },
-
   footer: {
-    padding: "32px 24px",
-    textAlign: "center",
+    padding: "24px 40px",
   },
   footerText: {
-    fontSize: "14px",
-    margin: 0,
+    textAlign: "center",
+    fontSize:  "13px",
+    margin:    0,
   },
 };
 

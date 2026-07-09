@@ -80,9 +80,9 @@ function Customers() {
             createDate:    c.createDate,
             // From summary endpoint
             totalSpend:    summary.totalSpend    || null,
-            orders:        summary.orders        || null,
+            orders:        summary.orderCount        || null,
             avgOrder:      summary.avgOrder      || null,
-            lastOrder:     summary.lastOrder     || null,
+            lastOrder:     summary.lastOrderDate     || null,
           };
         });
  
