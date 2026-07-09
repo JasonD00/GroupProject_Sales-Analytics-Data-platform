@@ -7,8 +7,8 @@
 
   Tier access rules:
     - GROWTH - Overview, Customers, Settings
-    - PRO - + Sales, Territory, Invoices, Reports, Data Export
-    - ENTERPRISE - + Products (and all PRO features)
+    - PRO - + Sales, Territory, Invoices, Data Export
+    - ENTERPRISE - + Products, Summaries (and all PRO features)
 
   Props:
     - activeNav (string)   - ID of the currently active page
@@ -37,7 +37,6 @@ const NAV_ITEMS = [
 
 // Feature items shown below a divider
 const FEATURE_ITEMS = [
-  { id: "reports",  label: "Reports",     tiers: ["PRO", "ENTERPRISE"]           },
   { id: "export",   label: "Data Export", tiers: ["PRO", "ENTERPRISE"]           },
   { id: "settings", label: "Settings",    tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
 ];
