@@ -1,9 +1,11 @@
---============================================================
+
+-- ============================================================
 -- DDL Script: Create Gold Layer - Star Schema
 -- ============================================================
---  Script Purpose:
+-- Script Purpose:
 --     Creates all dimensions and fact table for the Gold layer.
---     Dimensions: dim_clients, dim_products, dim_territory, dim_invoice_status
+--     Dimensions: dim_clients, dim_products, dim_territory,
+--                 dim_invoice_status
 --     Fact Table:  fact_sales
 -- ============================================================
 
