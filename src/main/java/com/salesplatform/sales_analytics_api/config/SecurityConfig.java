@@ -14,6 +14,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/*
+
+    Testing endpoints, Spring Security locks down endpoints at default so I must open them up here.
+    This config will have to change and only servers as testing for the DB connection.
+
+*/
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -21,6 +28,7 @@ public class SecurityConfig {
 
     private final JwtFilter jwtAuthFilter;
 
+    //used by AuthService 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -28,79 +36,30 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http
             .csrf(csrf -> csrf.disable())
-
             .cors(cors -> cors.configurationSource(request -> {
-                var config =
-                    new org.springframework.web.cors.CorsConfiguration();
-
-                config.setAllowedOrigins(
-                    List.of("http://localhost:5173")
-                );
-
-                config.setAllowedMethods(
-                    List.of(
-                        "GET",
-                        "POST",
-                        "PUT",
-                        "DELETE",
-                        "OPTIONS"
-                    )
-                );
-
+                var config = new org.springframework.web.cors.CorsConfiguration();
+                config.setAllowedOrigins(List.of("http://localhost:5173"));
+                config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(List.of("*"));
-                config.setExposedHeaders(
-                    List.of(
-                        "Authorization",
-                        "Content-Disposition"
-                    )
-                );
-                config.setAllowCredentials(true);
-
+                config.setExposedHeaders(List.of("Authorization"));
                 return config;
             }))
-
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-
             .authorizeHttpRequests(auth -> auth
-
-                // Allow browser preflight requests
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                // Public authentication endpoints
                 .requestMatchers("/api/auth/**").permitAll()
-
-                // Allow export requests from the React frontend
-                .requestMatchers("/api/export", "/api/export/**").permitAll()
-
-                // Temporarily open invoices while testing
-                .requestMatchers("/api/invoices/**").permitAll()
-
-                // Protected endpoints
-                .requestMatchers("/api/sales/**")
-                    .hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
-
-                .requestMatchers("/api/clients/**")
-                    .hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
-
-                .requestMatchers("/api/products/**")
-                    .hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
-
-                .requestMatchers("/api/territory/**")
-                    .hasAnyRole("PRO", "ENTERPRISE")
-
-                // Everything else requires login
+                .requestMatchers("/api/sales/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
+                .requestMatchers("/api/clients/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
+                .requestMatchers("/api/products/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
+                .requestMatchers("/api/territory/**").hasAnyRole("PRO", "ENTERPRISE")
+                .requestMatchers("/api/invoices/**").hasAnyRole("ENTERPRISE")
                 .anyRequest().authenticated()
             )
-
-            .addFilterBefore(
-                jwtAuthFilter,
-                UsernamePasswordAuthenticationFilter.class
-            );
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

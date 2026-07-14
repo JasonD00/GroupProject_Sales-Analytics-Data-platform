@@ -1,6 +1,3 @@
-/*
-Sarah Molloy
-*/
 package com.salesplatform.sales_analytics_api.controller;
 
 import com.salesplatform.sales_analytics_api.entity.Client;

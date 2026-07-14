@@ -11,7 +11,6 @@ import ChartToggle from "../../components/ChartToggle";
 function Invoices() {
   const { isDark } = useTheme();
   const { user } = useAuth();
-
   const t = isDark ? dark : light;
   const tier = user?.tier || "Growth";
 
@@ -19,236 +18,107 @@ function Invoices() {
 
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
 
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("orderDate");
+  const [sortBy, setSortBy] = useState("issueDate");
 
   useEffect(() => {
-    const fetchInvoices = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const response = await fetch(
-          "http://localhost:8080/api/invoices/summary"
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch invoices. Status: ${response.status}`
-          );
-        }
-
-        const data = await response.json();
-
-        const mappedInvoices = data.map((invoice, index) => ({
-          id: `${invoice.orderNumber || "invoice"}-${index}`,
-          orderNumber: invoice.orderNumber || "N/A",
-          customerName: invoice.customerName || "Unknown customer",
-          salesAmount: Number(invoice.salesAmount) || 0,
-          orderDate: invoice.orderDate || null,
-          dueDate: invoice.dueDate || null,
-          status: invoice.invoiceStatus || "N/A",
+    fetch("http://localhost:8080/api/invoices")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch invoices");
+        return res.json();
+      })
+      .then((data) => {
+        const mapped = data.map((i) => ({
+          id: i.invoiceId,
+          orderNumber: i.invoiceOrdNum || i.invoiceOrderNumber || "N/A",
+          status: i.invoiceStatus || "N/A",
+          issueDate: i.invoiceIssueDt || i.invoiceIssueDate || "N/A",
+          createdDate: i.dwCreateDate || "N/A",
         }));
-
-        setInvoices(mappedInvoices);
-      } catch (err) {
-        console.error("Invoice fetch error:", err);
-        setError(err.message || "Unable to load invoices");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInvoices();
+        setInvoices(mapped);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
-  const normaliseStatus = (status) => {
-    return String(status || "")
-      .trim()
-      .toLowerCase();
-  };
+  let filtered = invoices.filter((i) => {
+    const matchStatus = statusFilter === "all" || i.status === statusFilter;
+    const matchSearch =
+      String(i.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      i.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      i.status.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const paidCount = invoices.filter(
-    (invoice) => normaliseStatus(invoice.status) === "paid"
-  ).length;
+    return matchStatus && matchSearch;
+  });
 
-  const unpaidCount = invoices.filter(
-    (invoice) => normaliseStatus(invoice.status) === "unpaid"
-  ).length;
+  if (sortBy === "issueDate") {
+    filtered.sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate));
+  }
 
-  const overdueCount = invoices.filter(
-    (invoice) => normaliseStatus(invoice.status) === "overdue"
-  ).length;
+  if (sortBy === "status") {
+    filtered.sort((a, b) => a.status.localeCompare(b.status));
+  }
 
-  const cancelledCount = invoices.filter(
-    (invoice) => normaliseStatus(invoice.status) === "cancelled"
-  ).length;
+  if (sortBy === "invoiceId") {
+    filtered.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  }
 
   const totalInvoices = invoices.length;
+  const paidCount = invoices.filter((i) => i.status === "Paid").length;
+  const unpaidCount = invoices.filter((i) => i.status === "Unpaid").length;
+  const overdueCount = invoices.filter((i) => i.status === "Overdue").length;
+  const cancelledCount = invoices.filter((i) => i.status === "Cancelled").length;
 
-  const monthlyInvoices = useMemo(() => {
-    return Array.from({ length: 12 }, (_, index) => {
-      const monthNumber = index + 1;
-
-      const count = invoices.filter((invoice) => {
-        if (!invoice.orderDate) {
-          return false;
-        }
-
-        const date = new Date(`${invoice.orderDate}T00:00:00`);
-
-        if (Number.isNaN(date.getTime())) {
-          return false;
-        }
-
-        return date.getMonth() === index;
-      }).length;
-
-      return {
-        monthNum: monthNumber,
-        count,
-      };
-    });
-  }, [invoices]);
-
-  const filteredInvoices = useMemo(() => {
-    const search = searchTerm.trim().toLowerCase();
-
-    const results = invoices.filter((invoice) => {
-      const matchesStatus =
-        statusFilter === "all" ||
-        normaliseStatus(invoice.status) === statusFilter;
-
-      const matchesSearch =
-        search === "" ||
-        String(invoice.orderNumber).toLowerCase().includes(search) ||
-        String(invoice.customerName).toLowerCase().includes(search) ||
-        String(invoice.status).toLowerCase().includes(search) ||
-        String(invoice.salesAmount).toLowerCase().includes(search);
-
-      return matchesStatus && matchesSearch;
-    });
-
-    return [...results].sort((a, b) => {
-      if (sortBy === "orderDate") {
-        const dateA = a.orderDate
-          ? new Date(`${a.orderDate}T00:00:00`).getTime()
-          : 0;
-
-        const dateB = b.orderDate
-          ? new Date(`${b.orderDate}T00:00:00`).getTime()
-          : 0;
-
-        return dateB - dateA;
-      }
-
-      if (sortBy === "dueDate") {
-        const dateA = a.dueDate
-          ? new Date(`${a.dueDate}T00:00:00`).getTime()
-          : 0;
-
-        const dateB = b.dueDate
-          ? new Date(`${b.dueDate}T00:00:00`).getTime()
-          : 0;
-
-        return dateB - dateA;
-      }
-
-      if (sortBy === "status") {
-        return a.status.localeCompare(b.status);
-      }
-
-      if (sortBy === "customerName") {
-        return a.customerName.localeCompare(b.customerName);
-      }
-
-      if (sortBy === "salesAmountHigh") {
-        return b.salesAmount - a.salesAmount;
-      }
-
-      if (sortBy === "salesAmountLow") {
-        return a.salesAmount - b.salesAmount;
-      }
-
-      return 0;
-    });
-  }, [invoices, searchTerm, statusFilter, sortBy]);
+  const monthlyInvoices = Array.from({ length: 12 }, (_, index) => ({
+    monthNum: index + 1,
+    count: invoices.filter((i) => {
+      if (!i.issueDate || i.issueDate === "N/A") return false;
+      return new Date(i.issueDate).getMonth() === index;
+    }).length,
+  }));
 
   useEffect(() => {
-    if (!statusChartRef.current) {
-      return undefined;
-    }
-
+    if (!statusChartRef.current) return;
     statusChartRef.current.innerHTML = "";
 
     const statusData = [
-      {
-        status: "Paid",
-        count: paidCount,
-        color: isDark ? "#22c55e" : "#16a34a",
-      },
-      {
-        status: "Unpaid",
-        count: unpaidCount,
-        color: isDark ? "#fbbf24" : "#f59e0b",
-      },
-      {
-        status: "Overdue",
-        count: overdueCount,
-        color: isDark ? "#ef4444" : "#dc2626",
-      },
-      {
-        status: "Cancelled",
-        count: cancelledCount,
-        color: isDark ? "#94a3b8" : "#64748b",
-      },
+      { status: "Paid", count: paidCount, color: isDark ? "#22c55e" : "#16a34a" },
+      { status: "Unpaid", count: unpaidCount, color: isDark ? "#fbbf24" : "#f59e0b" },
+      { status: "Overdue", count: overdueCount, color: isDark ? "#ef4444" : "#dc2626" },
+      { status: "Cancelled", count: cancelledCount, color: isDark ? "#94a3b8" : "#64748b" },
     ];
 
-    if (statusData.every((item) => item.count === 0)) {
-      return undefined;
-    }
+    if (statusData.every((d) => d.count === 0)) return;
 
     const plot = Plot.plot({
       width: statusChartRef.current.offsetWidth || 400,
-      height: 160,
+      height: 140,
       marginLeft: 90,
-      marginRight: 35,
       marginBottom: 38,
       marginTop: 8,
-
       marks: [
         Plot.barX(statusData, {
           x: "count",
           y: "status",
-          fill: (item) => item.color,
+          fill: (d) => d.color,
           rx: 3,
         }),
-
         Plot.text(statusData, {
           x: "count",
           y: "status",
-          text: (item) => item.count,
+          text: (d) => d.count,
           dx: 8,
           fill: isDark ? "#e2e8f0" : "#1a2a6c",
           fontSize: "11px",
           fontWeight: "600",
         }),
-
         Plot.ruleX([0]),
       ],
-
-      x: {
-        label: "Count",
-        grid: true,
-      },
-
-      y: {
-        label: null,
-      },
-
+      x: { label: "Count", grid: true },
+      y: { label: null },
       style: {
         fontSize: "11px",
         color: t.textSecondary,
@@ -257,86 +127,17 @@ function Invoices() {
     });
 
     statusChartRef.current.appendChild(plot);
-
-    return () => {
-      plot.remove();
-    };
-  }, [
-    isDark,
-    paidCount,
-    unpaidCount,
-    overdueCount,
-    cancelledCount,
-    t.textSecondary,
-  ]);
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IE", {
-      style: "currency",
-      currency: "EUR",
-    }).format(amount || 0);
-  };
-
-  const formatDate = (dateValue) => {
-    if (!dateValue) {
-      return "N/A";
-    }
-
-    const date = new Date(`${dateValue}T00:00:00`);
-
-    if (Number.isNaN(date.getTime())) {
-      return dateValue;
-    }
-
-    return date.toLocaleDateString("en-IE");
-  };
-
-  const getStatusStyle = (status) => {
-    const normalisedStatus = normaliseStatus(status);
-
-    if (normalisedStatus === "paid") {
-      return t.success;
-    }
-
-    if (normalisedStatus === "overdue") {
-      return t.danger;
-    }
-
-    if (normalisedStatus === "cancelled") {
-      return t.muted;
-    }
-
-    if (normalisedStatus === "unpaid") {
-      return t.warning;
-    }
-
-    return t.muted;
-  };
+    return () => plot.remove();
+  }, [isDark, invoices]);
 
   return (
     <div style={styles.wrapper}>
       <div style={styles.summaryGrid}>
         {[
-          {
-            label: "Total Invoices",
-            value: totalInvoices,
-            accent: t.accentLight,
-          },
-          {
-            label: "Paid",
-            value: paidCount,
-            accent: t.successLight,
-          },
-          {
-            label: "Unpaid",
-            value: unpaidCount,
-            accent: t.warningLight,
-          },
-          {
-            label: "Overdue",
-            value: overdueCount,
-            accent: t.dangerLight,
-          },
+          { label: "Total Invoices", value: totalInvoices, accent: t.accentLight },
+          { label: "Paid", value: paidCount, accent: t.successLight },
+          { label: "Unpaid", value: unpaidCount, accent: t.warningLight },
+          { label: "Overdue", value: overdueCount, accent: t.dangerLight },
         ].map((card) => (
           <div
             key={card.label}
@@ -346,29 +147,12 @@ function Invoices() {
               border: `1px solid ${t.border}`,
             }}
           >
-            <div
-              style={{
-                ...styles.summaryAccent,
-                background: card.accent,
-              }}
-            />
-
+            <div style={{ ...styles.summaryAccent, background: card.accent }} />
             <div>
-              <div
-                style={{
-                  ...styles.summaryLabel,
-                  color: t.textSecondary,
-                }}
-              >
+              <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>
                 {card.label}
               </div>
-
-              <div
-                style={{
-                  ...styles.summaryValue,
-                  color: t.textPrimary,
-                }}
-              >
+              <div style={{ ...styles.summaryValue, color: t.textPrimary }}>
                 {card.value}
               </div>
             </div>
@@ -377,52 +161,14 @@ function Invoices() {
       </div>
 
       <div style={styles.chartsGrid}>
-        <div
-          style={{
-            ...styles.chartCard,
-            background: t.cardBg,
-            border: `1px solid ${t.border}`,
-          }}
-        >
-          <h3
-            style={{
-              ...styles.chartTitle,
-              color: t.textPrimary,
-            }}
-          >
-            Invoices per Month
-          </h3>
-
-          <p
-            style={{
-              ...styles.chartSub,
-              color: t.textSecondary,
-            }}
-          >
-            Monthly invoice trend
-          </p>
-
+        <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Invoices per Month</h3>
+          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Monthly invoice trend</p>
           <ChartToggle
             data={monthlyInvoices}
             xKey="monthNum"
             yKey="count"
-            xFormat={(monthNumber) =>
-              [
-                "",
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-              ][monthNumber]
-            }
+            xFormat={(d) => ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d]}
             xDomain={[0.5, 12.5]}
             yLabel="Invoices"
             height={220}
@@ -430,76 +176,23 @@ function Invoices() {
           />
         </div>
 
-        <div
-          style={{
-            ...styles.chartCard,
-            background: t.cardBg,
-            border: `1px solid ${t.border}`,
-          }}
-        >
-          <h3
-            style={{
-              ...styles.chartTitle,
-              color: t.textPrimary,
-            }}
-          >
-            Invoice Status
-          </h3>
-
-          <p
-            style={{
-              ...styles.chartSub,
-              color: t.textSecondary,
-            }}
-          >
-            Paid, unpaid, overdue and cancelled
-          </p>
-
+        <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
+          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Invoice Status</h3>
+          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Paid, unpaid, overdue and cancelled</p>
           {loading ? (
-            <div
-              style={{
-                ...styles.loadingText,
-                color: t.textSecondary,
-              }}
-            >
-              Loading chart...
-            </div>
-          ) : paidCount === 0 &&
-            unpaidCount === 0 &&
-            overdueCount === 0 &&
-            cancelledCount === 0 ? (
-            <div
-              style={{
-                ...styles.loadingText,
-                color: t.textSecondary,
-              }}
-            >
-              No recognised invoice statuses found.
-            </div>
+            <div style={{ ...styles.loadingText, color: t.textSecondary }}>Loading...</div>
           ) : (
-            <div
-              ref={statusChartRef}
-              style={{
-                width: "100%",
-                marginTop: "12px",
-              }}
-            />
+            <div ref={statusChartRef} style={{ width: "100%", marginTop: "12px" }} />
           )}
         </div>
       </div>
 
-      <div
-        style={{
-          ...styles.filterBar,
-          background: t.cardBg,
-          border: `1px solid ${t.border}`,
-        }}
-      >
+      <div style={{ ...styles.filterBar, background: t.cardBg, border: `1px solid ${t.border}` }}>
         <input
           type="text"
-          placeholder="Search by order number, customer, amount or status..."
+          placeholder="Search by invoice ID, order number or status..."
           value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
+          onChange={(e) => setSearchTerm(e.target.value)}
           style={{
             ...styles.searchInput,
             background: t.inputBg,
@@ -510,7 +203,7 @@ function Invoices() {
 
         <select
           value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value)}
+          onChange={(e) => setStatusFilter(e.target.value)}
           style={{
             ...styles.select,
             background: t.inputBg,
@@ -518,16 +211,16 @@ function Invoices() {
             color: t.textPrimary,
           }}
         >
-          <option value="all">All Statuses</option>
-          <option value="paid">Paid</option>
-          <option value="unpaid">Unpaid</option>
-          <option value="overdue">Overdue</option>
-          <option value="cancelled">Cancelled</option>
+          <option value="all">All Status</option>
+          <option value="Paid">Paid</option>
+          <option value="Unpaid">Unpaid</option>
+          <option value="Overdue">Overdue</option>
+          <option value="Cancelled">Cancelled</option>
         </select>
 
         <select
           value={sortBy}
-          onChange={(event) => setSortBy(event.target.value)}
+          onChange={(e) => setSortBy(e.target.value)}
           style={{
             ...styles.select,
             background: t.inputBg,
@@ -535,168 +228,70 @@ function Invoices() {
             color: t.textPrimary,
           }}
         >
-          <option value="orderDate">Sort by Order Date</option>
-          <option value="dueDate">Sort by Due Date</option>
-          <option value="customerName">Sort by Customer</option>
+          <option value="issueDate">Sort by Issue Date</option>
+          <option value="invoiceId">Sort by Invoice ID</option>
           <option value="status">Sort by Status</option>
-          <option value="salesAmountHigh">Amount: Highest First</option>
-          <option value="salesAmountLow">Amount: Lowest First</option>
         </select>
       </div>
 
-      <div
-        style={{
-          ...styles.tableCard,
-          background: t.cardBg,
-          border: `1px solid ${t.border}`,
-        }}
-      >
+      <div style={{ ...styles.tableCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
         <div style={styles.tableHeader}>
           <div>
-            <h3
-              style={{
-                ...styles.chartTitle,
-                color: t.textPrimary,
-              }}
-            >
-              Invoice Directory
-            </h3>
-
-            <p
-              style={{
-                ...styles.chartSub,
-                color: t.textSecondary,
-              }}
-            >
-              {filteredInvoices.length} results
-            </p>
+            <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Invoice Directory</h3>
+            <p style={{ ...styles.chartSub, color: t.textSecondary }}>{filtered.length} results</p>
           </div>
+          <button style={styles.addBtn}>+ Add Invoice</button>
         </div>
 
         {loading ? (
-          <div
-            style={{
-              ...styles.loadingText,
-              color: t.textSecondary,
-            }}
-          >
-            Loading invoices...
-          </div>
+          <div style={{ ...styles.loadingText, color: t.textSecondary }}>Loading invoices...</div>
         ) : error ? (
-          <div
-            style={{
-              ...styles.errorText,
-              color: t.danger,
-            }}
-          >
-            Error: {error}
-          </div>
-        ) : filteredInvoices.length === 0 ? (
-          <div
-            style={{
-              ...styles.loadingText,
-              color: t.textSecondary,
-            }}
-          >
-            No invoice records found.
-          </div>
+          <div style={{ ...styles.errorText, color: t.danger }}>Error: {error}</div>
         ) : (
           <div style={styles.tableWrapper}>
             <table style={styles.table}>
               <thead>
-                <tr
-                  style={{
-                    borderBottom: `1px solid ${t.border}`,
-                  }}
-                >
-                  {[
-                    "Order Number",
-                    "Customer",
-                    "Sales Amount",
-                    "Order Date",
-                    "Due Date",
-                    "Status",
-                  ].map((heading) => (
-                    <th
-                      key={heading}
-                      style={{
-                        ...styles.th,
-                        color: t.textSecondary,
-                      }}
-                    >
-                      {heading}
+                <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+                  {["Invoice ID", "Order Number", "Status", "Issue Date", "Created Date", ""].map((h) => (
+                    <th key={h} style={{ ...styles.th, color: t.textSecondary }}>
+                      {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-
               <tbody>
-                {filteredInvoices.map((invoice) => (
-                  <tr
-                    key={invoice.id}
-                    style={{
-                      borderBottom: `1px solid ${t.borderLight}`,
-                    }}
-                  >
-                    <td
-                      style={{
-                        ...styles.td,
-                        color: t.textPrimary,
-                        fontFamily: "monospace",
-                        fontWeight: "600",
-                      }}
-                    >
-                      {invoice.orderNumber}
+                {filtered.map((i) => (
+                  <tr key={i.id} style={{ borderBottom: `1px solid ${t.borderLight}` }}>
+                    <td style={{ ...styles.td, color: t.textSecondary, fontFamily: "monospace" }}>
+                      {i.id}
                     </td>
-
-                    <td
-                      style={{
-                        ...styles.td,
-                        color: t.textPrimary,
-                        fontWeight: "500",
-                      }}
-                    >
-                      {invoice.customerName}
+                    <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "500" }}>
+                      {i.orderNumber}
                     </td>
-
-                    <td
-                      style={{
-                        ...styles.td,
-                        color: t.textPrimary,
-                        fontWeight: "600",
-                      }}
-                    >
-                      {formatCurrency(invoice.salesAmount)}
-                    </td>
-
-                    <td
-                      style={{
-                        ...styles.td,
-                        color: t.textSecondary,
-                      }}
-                    >
-                      {formatDate(invoice.orderDate)}
-                    </td>
-
-                    <td
-                      style={{
-                        ...styles.td,
-                        color: t.textSecondary,
-                      }}
-                    >
-                      {formatDate(invoice.dueDate)}
-                    </td>
-
-                    <td style={styles.td}>
+                    <td style={{ ...styles.td }}>
                       <span
                         style={{
                           ...styles.statusBadge,
-                          background: getStatusStyle(invoice.status),
-                          color: "#ffffff",
+                          background:
+                            i.status === "Paid"
+                              ? t.success
+                              : i.status === "Overdue"
+                              ? t.danger
+                              : i.status === "Cancelled"
+                              ? t.muted
+                              : t.warning,
+                          color: "#fff",
                         }}
                       >
-                        {invoice.status}
+                        {i.status}
                       </span>
+                    </td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{i.issueDate}</td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{i.createdDate}</td>
+                    <td style={{ ...styles.td }}>
+                      <button style={{ ...styles.actionBtn, color: t.accent }}>
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -751,13 +346,11 @@ const styles = {
     flexDirection: "column",
     gap: "20px",
   },
-
   summaryGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gridTemplateColumns: "repeat(4, 1fr)",
     gap: "16px",
   },
-
   summaryCard: {
     padding: "18px 20px",
     borderRadius: "10px",
@@ -765,59 +358,48 @@ const styles = {
     alignItems: "center",
     gap: "14px",
   },
-
   summaryAccent: {
     width: "4px",
     height: "40px",
     borderRadius: "4px",
     flexShrink: 0,
   },
-
   summaryLabel: {
     fontSize: "12px",
     marginBottom: "4px",
   },
-
   summaryValue: {
     fontSize: "24px",
     fontWeight: "700",
   },
-
   chartsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+    gridTemplateColumns: "repeat(2, 1fr)",
     gap: "16px",
   },
-
   chartCard: {
     padding: "20px",
     borderRadius: "10px",
-    minWidth: 0,
   },
-
   chartTitle: {
     margin: "0 0 2px 0",
     fontSize: "14px",
     fontWeight: "600",
   },
-
   chartSub: {
     margin: 0,
     fontSize: "12px",
   },
-
   loadingText: {
     padding: "40px",
     textAlign: "center",
     fontSize: "13px",
   },
-
   errorText: {
     padding: "20px",
     textAlign: "center",
     fontSize: "13px",
   },
-
   filterBar: {
     padding: "16px 20px",
     borderRadius: "10px",
@@ -826,7 +408,6 @@ const styles = {
     flexWrap: "wrap",
     alignItems: "center",
   },
-
   searchInput: {
     flex: 1,
     minWidth: "220px",
@@ -835,7 +416,6 @@ const styles = {
     fontSize: "13px",
     outline: "none",
   },
-
   select: {
     padding: "8px 12px",
     borderRadius: "6px",
@@ -843,29 +423,33 @@ const styles = {
     cursor: "pointer",
     outline: "none",
   },
-
   tableCard: {
     padding: "20px",
     borderRadius: "10px",
   },
-
   tableHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: "16px",
   },
-
+  addBtn: {
+    padding: "8px 16px",
+    background: "#1a2a6c",
+    color: "#fff",
+    border: "none",
+    borderRadius: "6px",
+    fontSize: "13px",
+    fontWeight: "600",
+    cursor: "pointer",
+  },
   tableWrapper: {
     overflowX: "auto",
   },
-
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    minWidth: "850px",
   },
-
   th: {
     padding: "10px 14px",
     textAlign: "left",
@@ -874,18 +458,23 @@ const styles = {
     textTransform: "uppercase",
     letterSpacing: "0.4px",
   },
-
   td: {
     padding: "11px 14px",
     fontSize: "13px",
   },
-
   statusBadge: {
-    display: "inline-block",
     padding: "3px 9px",
     borderRadius: "20px",
     fontSize: "11px",
     fontWeight: "600",
+  },
+  actionBtn: {
+    background: "transparent",
+    border: "none",
+    fontSize: "13px",
+    fontWeight: "500",
+    cursor: "pointer",
+    textDecoration: "underline",
   },
 };
 

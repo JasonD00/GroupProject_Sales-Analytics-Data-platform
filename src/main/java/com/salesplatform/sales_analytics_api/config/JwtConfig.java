@@ -32,8 +32,8 @@ import java.util.Map;
 @Component
 public class JwtConfig {
 
-    @Value("${jwt.secret}")
-private String secret;
+    @Value("${JWT_SECRET}")
+    private String secret;
 
 
     private static final long EXPIRATION_TIME = 864_000_000; // auto gend, temp aswell
