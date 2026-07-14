@@ -1,3 +1,6 @@
+/*
+Sarah Molloy
+*/
 package com.salesplatform.sales_analytics_api.entity;
 
 import jakarta.persistence.*;

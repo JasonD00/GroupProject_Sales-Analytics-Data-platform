@@ -1,3 +1,6 @@
+/*
+Sarah Molloy
+*/
 package com.salesplatform.sales_analytics_api.dto;
 
 import lombok.AllArgsConstructor;
@@ -6,16 +9,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 
 /*
-        Invoice Summary Response
+    Invoice Summary Response
 
-        Aggregated invoice data:
-        gold.fact_sales = amount and dates
-        gold.dim_clients = customer name
-        gold.dim_invoice_status = invoice status
- */
+    Aggregated invoice data from:
+    gold.fact_sales
+    gold.dim_clients
+    gold.dim_invoice_status
+*/
 
 @Data
 @NoArgsConstructor
@@ -24,7 +26,7 @@ import java.time.LocalTime;
 public class InvoiceSummaryResponse {
 
     private String orderNumber;
-    public String customerName;
+    private String customerName;
     private Double salesAmount;
     private LocalDate orderDate;
     private LocalDate dueDate;

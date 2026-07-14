@@ -1,4 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+/*
+Sarah Molloy
+*/
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import * as Plot from "@observablehq/plot";

@@ -1,3 +1,6 @@
+/*
+Sarah Molloy
+*/
 import { useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 
