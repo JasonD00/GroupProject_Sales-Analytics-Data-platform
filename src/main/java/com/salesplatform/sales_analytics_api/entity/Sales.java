@@ -1,147 +1,55 @@
+//Shemen
 package com.salesplatform.sales_analytics_api.entity;
 
-/*  SQL Client Template
-
-    sales_ord_num NVARCHAR(50),
-    sales_prd_key NVARCHAR(50),
-    sales_client_id INT,
-    sales_order_dt INT,
-    sales_ship_dt INT,
-    sales_due_dt INT,
-    sales_sales INT,
-    sales_quantity INT,
-    sales_price INT
-
- */
-
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Immutable;
+import java.time.LocalDate;
 
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
-@Table(name = "crm_sales_info", schema = "bronze")
+@Table(name = "fact_sales", schema = "gold")
+@Immutable
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Sales {
 
     @Id
-    @Column(name = "sales_ord_num")
+    @Column(name = "order_number", length = 50)
     private String orderNumber;
 
+    @Column(name = "client_key")
+    private Long clientKey;
 
-    @ManyToOne
-    @JoinColumn(
-        name = "sales_prd_key",
-        referencedColumnName = "prod_key"
-    )
-    @JsonBackReference
-    private Product product;
+    @Column(name = "product_key")
+    private Long productKey;
 
+    @Column(name = "territory_key")
+    private Long territoryKey;
 
-    @Column(name = "sales_client_id")
-    private Integer clientId;
+    @Column(name = "invoice_status_key")
+    private Long invoiceStatusKey;
 
-    @Column(name = "sales_order_dt")
-    private Integer orderDate;
+    @Column(name = "order_date")
+    private LocalDate orderDate;
 
-    @Column(name = "sales_ship_dt")
-    private Integer shipDate;
+    @Column(name = "ship_date")
+    private LocalDate shipDate;
 
-    @Column(name = "sales_due_dt")
-    private Integer dueDate;
+    @Column(name = "due_date")
+    private LocalDate dueDate;
 
-    @Column(name = "sales_sales")
-    private Integer salesAmount;
+    @Column(name = "sales_amount")
+    private Double salesAmount;
 
-    @Column(name = "sales_quantity")
+    @Column(name = "quantity")
     private Integer quantity;
 
-    @Column(name = "sales_price")
-    private Integer price;
-
-
-    // Default constructor
-    public Sales() {
-    }
-
-
-    public String getOrderNumber() {
-        return orderNumber;
-    }
-
-    public void setOrderNumber(String orderNumber) {
-        this.orderNumber = orderNumber;
-    }
-
-
-    public Product getProduct() {
-        return product;
-    }
-
-    public void setProduct(Product product) {
-        this.product = product;
-    }
-
-
-    public Integer getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(Integer clientId) {
-        this.clientId = clientId;
-    }
-
-
-    public Integer getOrderDate() {
-        return orderDate;
-    }
-
-    public void setOrderDate(Integer orderDate) {
-        this.orderDate = orderDate;
-    }
-
-
-    public Integer getShipDate() {
-        return shipDate;
-    }
-
-    public void setShipDate(Integer shipDate) {
-        this.shipDate = shipDate;
-    }
-
-
-    public Integer getDueDate() {
-        return dueDate;
-    }
-
-    public void setDueDate(Integer dueDate) {
-        this.dueDate = dueDate;
-    }
-
-
-    public Integer getSalesAmount() {
-        return salesAmount;
-    }
-
-    public void setSalesAmount(Integer salesAmount) {
-        this.salesAmount = salesAmount;
-    }
-
-
-    public Integer getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
-    }
-
-
-    public Integer getPrice() {
-        return price;
-    }
-
-    public void setPrice(Integer price) {
-        this.price = price;
-    }
+    @Column(name = "price")
+    private Double price;
 }

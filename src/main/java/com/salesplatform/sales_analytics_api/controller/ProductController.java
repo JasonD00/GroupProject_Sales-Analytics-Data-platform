@@ -1,36 +1,39 @@
+//Shemen
 package com.salesplatform.sales_analytics_api.controller;
 
-import com.salesplatform.sales_analytics_api.entity.Product;
+import com.salesplatform.sales_analytics_api.dto.ProductResponse;
+import com.salesplatform.sales_analytics_api.dto.ProductSummaryResponse;
 import com.salesplatform.sales_analytics_api.service.ProductService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
+
+
 @RestController
-@RequestMapping("/products")
+@RequestMapping("/api/products")
+@RequiredArgsConstructor
 public class ProductController {
 
-    private final ProductService service;
+    private final ProductService productService;
 
-    public ProductController(ProductService service) {
-        this.service = service;
-    }
-
-
+    // returns all products
     @GetMapping
-    public List<Product> getAllProducts() {
-        return service.getAllProducts();
+    public ResponseEntity<List<ProductResponse>> getAllProducts() {
+        return ResponseEntity.ok(productService.getAllProducts());
     }
 
-
-    @GetMapping("/{id}")
-    public Product getProductById(@PathVariable Integer id) {
-        return service.getProductById(id);
+    // returns a single product matching the given product_key
+    // returns 404 via ResourceNotFoundException
+    @GetMapping("/{productKey}")
+    public ResponseEntity<ProductResponse> getProductById(@PathVariable Long productKey) {
+        return ResponseEntity.ok(productService.getProductById(productKey));
     }
 
-
-    @PostMapping
-    public Product createProduct(@RequestBody Product product) {
-        return service.saveProduct(product);
+    // returns aggregated product summary
+    @GetMapping("/summary")
+    public ResponseEntity<List<ProductSummaryResponse>> getProductSummary() {
+        return ResponseEntity.ok(productService.getProductSummary());
     }
 }

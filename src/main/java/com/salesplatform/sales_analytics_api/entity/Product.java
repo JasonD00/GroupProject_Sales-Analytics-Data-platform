@@ -1,127 +1,56 @@
+//Shemen
 package com.salesplatform.sales_analytics_api.entity;
 
-/*  SQL Client Template
-
-    prod_id INT,
-    prod_key NVARCHAR(50),
-    prod_nm NVARCHAR(50),
-    prod_cost INT,
-    prod_type NVARCHAR(50),
-    prod_start_dt DATETIME,
-    prod_end_dt DATETIME
-
- */
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
-import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Immutable;
+import java.time.LocalDate;
+
+
 
 @Entity
-@Table(name = "crm_product_info", schema = "bronze")
+@Table(name = "dim_products", schema = "gold")
+@Immutable
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Product {
 
     @Id
-    @Column(name = "prod_id")
-    private Integer prodId;
+    @Column(name = "product_key")
+    private Long productKey;
 
-    @Column(name = "prod_key", unique = true)
-    private String productKey;
+    @Column(name = "product_id")
+    private Integer productId;
 
-    @Column(name = "prod_nm")
-    private String name;
+    @Column(name = "product_number", length = 50)
+    private String productNumber;
 
-    @Column(name = "prod_cost")
+    @Column(name = "product_name", length = 50)
+    private String productName;
+
+    @Column(name = "cost")
     private Integer cost;
 
-    @Column(name = "prod_type")
-    private String type;
+    @Column(name = "product_type", length = 50)
+    private String productType;
 
-    @Column(name = "prod_start_dt")
-    private LocalDateTime startDate;
+    @Column(name = "category", length = 50)
+    private String category;
 
-    @Column(name = "prod_end_dt")
-    private LocalDateTime endDate;
+    @Column(name = "subcategory", length = 50)
+    private String subcategory;
 
+    @Column(name = "maintenance", length = 50)
+    private String maintenance;
 
-    // One product can have many sales records
-    @OneToMany(mappedBy = "product")
-    @JsonManagedReference
-    private List<Sales> sales;
+    @Column(name = "product_level")
+    private Integer productLevel;
 
-
-    // Default constructor
-    public Product() {
-    }
-
-
-    public Integer getProdId() {
-        return prodId;
-    }
-
-    public void setProdId(Integer prodId) {
-        this.prodId = prodId;
-    }
-
-
-    public String getProductKey() {
-        return productKey;
-    }
-
-    public void setProductKey(String productKey) {
-        this.productKey = productKey;
-    }
-
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-
-    public Integer getCost() {
-        return cost;
-    }
-
-    public void setCost(Integer cost) {
-        this.cost = cost;
-    }
-
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-
-    public LocalDateTime getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(LocalDateTime startDate) {
-        this.startDate = startDate;
-    }
-
-
-    public LocalDateTime getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(LocalDateTime endDate) {
-        this.endDate = endDate;
-    }
-
-
-    public List<Sales> getSales() {
-        return sales;
-    }
-
-    public void setSales(List<Sales> sales) {
-        this.sales = sales;
-    }
+    @Column(name = "start_date")
+    private LocalDate startDate;
 }
