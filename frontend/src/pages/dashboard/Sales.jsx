@@ -61,9 +61,9 @@ function Sales() {
   useEffect(() => {
     if (!token) return;
     Promise.all([
-      fetch("http://localhost:8080/api/sales",               { headers: authHeader }),
-      fetch("http://localhost:8080/api/sales/total-revenue", { headers: authHeader }),
-      fetch("http://localhost:8080/api/clients",             { headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/sales`,   { headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/sales/total-revenue`, { headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/clients`,  { headers: authHeader }),
     ])
       .then(async ([salesRes, revenueRes, clientsRes]) => {
         if (!salesRes.ok) throw new Error("Failed to fetch sales data");
@@ -81,7 +81,7 @@ function Sales() {
   // Fetch orders for selected customer
   const fetchCustomerOrders = (clientKey) => {
     setCustomerLoading(true);
-    fetch(`http://localhost:8080/api/sales/client/${clientKey}`, { headers: authHeader })
+    fetch(`${import.meta.env.VITE_API_URL}/api/sales/client/${clientKey}`, { headers: authHeader })
       .then(r => r.ok ? r.json() : [])
       .then(data => setCustomerOrders(data))
       .catch(() => setCustomerOrders([]))

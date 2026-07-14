@@ -55,7 +55,7 @@ function Territory() {
 
   useEffect(() => {
     if (!token) return;
-    fetch("http://localhost:8080/api/sales/territory", { headers: authHeader })
+    fetch(`${import.meta.env.VITE_API_URL}/api/sales/territory`, { headers: authHeader })
       .then(r => r.ok ? r.json() : [])
       .then(data => setTerritory(data))
       .catch(err => setError(err.message))

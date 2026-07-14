@@ -45,8 +45,8 @@ function Customers() {
  
     // Fetch both endpoints together
     Promise.all([
-      fetch("http://localhost:8080/api/clients", { headers: authHeader }),
-      fetch("http://localhost:8080/api/clients/summary", { headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/clients`, { headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/clients/summary`, { headers: authHeader }),
     ])
       .then(async ([clientsRes, summaryRes]) => {
         if (!clientsRes.ok) throw new Error("Failed to fetch customers");

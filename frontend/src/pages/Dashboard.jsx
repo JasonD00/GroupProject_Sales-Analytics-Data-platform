@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import Sidebar from "../components/Sidebar";
+import Sidebar from "../components/SideBar";
 import TopBar from "../components/TopBar";
 import LoginModel from "../components/LoginModel";
 import Overview from "./dashboard/Overview";

@@ -35,9 +35,9 @@ function Summaries() {
     if (!token) return;
 
     Promise.all([
-      fetch("http://localhost:8080/api/clients/summary",  { headers: authHeader }),
-      fetch("http://localhost:8080/api/products/summary", { headers: authHeader }),
-      fetch("http://localhost:8080/api/invoices/summary", { headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/clients/summary`, { headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/products/summary`,{ headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/invoices/summary`, { headers: authHeader }),
     ])
       .then(async ([clientsRes, productsRes, invoicesRes]) => {
         if (!clientsRes.ok || !productsRes.ok || !invoicesRes.ok) {

@@ -39,7 +39,7 @@ function Invoices() {
   useEffect(() => {
     if (!token) return;
 
-    fetch("http://localhost:8080/api/invoices/summary", {
+    fetch(`${import.meta.env.VITE_API_URL}/api/invoices/summary`, {
       headers: {
         "Authorization": `Bearer ${token}`,
         "Content-Type":  "application/json",

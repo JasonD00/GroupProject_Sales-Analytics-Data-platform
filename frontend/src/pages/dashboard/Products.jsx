@@ -51,8 +51,8 @@ function Products() {
 
     // Fetch products and summary in parallel
     Promise.all([
-      fetch("http://localhost:8080/api/products",         { headers: authHeader }),
-      fetch("http://localhost:8080/api/products/summary", { headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/products`,       { headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/products/summary`,  { headers: authHeader }),
     ])
       .then(async ([productsRes, summaryRes]) => {
         if (!productsRes.ok) throw new Error("Failed to fetch products");

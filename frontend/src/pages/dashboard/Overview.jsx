@@ -46,17 +46,17 @@ function Overview() {
 
     const fetches = [
       // Total revenue KPI
-      fetch("http://localhost:8080/api/sales/total-revenue", { headers: authHeader })
+      fetch(`${import.meta.env.VITE_API_URL}/api/sales/total-revenue`, { headers: authHeader })
         .then(r => r.ok ? r.json() : null)
         .then(d => setTotalRevenue(d)),
 
       // Customer summary for KPI cards
-      fetch("http://localhost:8080/api/clients/summary", { headers: authHeader })
+      fetch(`${import.meta.env.VITE_API_URL}/api/clients/summary`, { headers: authHeader })
         .then(r => r.ok ? r.json() : [])
         .then(d => setCustomerSummary(d)),
 
       // All sales - used to build monthly revenue trend chart
-      fetch("http://localhost:8080/api/sales", { headers: authHeader })
+      fetch(`${import.meta.env.VITE_API_URL}/api/sales`, { headers: authHeader })
         .then(r => r.ok ? r.json() : [])
         .then(d => setAllSales(d)),
     ];
@@ -64,19 +64,19 @@ function Overview() {
     // Pro+ endpoints
     if (hasFeature("Pro")) {
       fetches.push(
-        fetch("http://localhost:8080/api/sales/territory", { headers: authHeader })
+        fetch(`${import.meta.env.VITE_API_URL}/api/sales/territory`, { headers: authHeader })
           .then(r => r.ok ? r.json() : [])
           .then(d => setTerritory(d)),
 
-        fetch("http://localhost:8080/api/invoices/summary", { headers: authHeader })
+        fetch(`${import.meta.env.VITE_API_URL}/api/invoices/summary`, { headers: authHeader })
           .then(r => r.ok ? r.json() : [])
           .then(d => setInvoiceSummary(d)),
 
-        fetch("http://localhost:8080/api/products/summary", { headers: authHeader })
+        fetch(`${import.meta.env.VITE_API_URL}/api/products/summary`,  { headers: authHeader })
           .then(r => r.ok ? r.json() : [])
           .then(d => setProductSummary(d)),
 
-        fetch("http://localhost:8080/api/clients", { headers: authHeader })
+        fetch(`${import.meta.env.VITE_API_URL}/api/clients`,  { headers: authHeader })
           .then(r => r.ok ? r.json() : [])
           .then(d => setCustomerData(d)),
       );
