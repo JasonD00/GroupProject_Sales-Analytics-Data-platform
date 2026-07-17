@@ -1,22 +1,22 @@
 /*
-  Overview:
-  Main layout, renders the sidebar, topbar and any page that matches the current "activeNav" state
-  
-*/
+  Main layout, renders the sidebar, topbar and the currently active page
+  components based on activeNav state
+  Also renders the login model when its
+ */
 
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import Sidebar from "../components/Sidebar";
+import Sidebar from "../components/SideBar";
 import TopBar from "../components/TopBar";
 import LoginModel from "../components/LoginModel";
 import Overview from "./dashboard/Overview";
 import Sales from "./dashboard/Sales";
 import Products from "./dashboard/Products";
 import Customers from "./dashboard/Customers";
-import Transactions from "./dashboard/Transactions";
+import Territory from "./dashboard/Territory";
 import Invoices from "./dashboard/Invoices";
-//import Reports from "./dashboard/Reports";
+import Summaries from "./dashboard/Summaries";
 import DataExport from "./dashboard/DataExport";
 import Settings from "./dashboard/Settings";
 
@@ -25,9 +25,9 @@ const pageTitles = {
   sales:        "Sales",
   products:     "Products",
   customers:    "Customers",
-  transactions: "Transactions",
+  territory:     "Territory",
   invoices:     "Invoices",
-  reports:      "Performance Reports",
+  summaries:      "Summaries",
   export:       "Data Export",
   settings:     "Settings",
 };
@@ -55,9 +55,9 @@ function Dashboard() {
           {activeNav === "sales"        && <Sales />}
           {activeNav === "products"     && <Products />}
           {activeNav === "customers"    && <Customers />}
-          {activeNav === "transactions" && <Transactions />}
+          {activeNav === "territory"    && <Territory />}
           {activeNav === "invoices"     && <Invoices />}
-          {activeNav === "reports"      && <Reports />}
+          {activeNav === "summaries"    && <Summaries />}
           {activeNav === "export"       && <DataExport />}
           {activeNav === "settings"     && <Settings />}
         </div>

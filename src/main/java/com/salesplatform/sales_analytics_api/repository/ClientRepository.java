@@ -51,5 +51,12 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
         ORDER BY total_spend DESC
         """, nativeQuery = true)
     List<Object[]> findCustomerSummary();
+        
+    //used by ExportController for CSV export
+    @Query(value = """
+        SELECT c.*
+        FROM gold.dim_clients c
+        """, nativeQuery = true)
+    List<Client> findClientsWithSales();
 
 }

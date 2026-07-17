@@ -1,79 +1,139 @@
 /*
-  Overview:
-  Visible only to Enterprise tier
-  Shows a switchable revenue trend chart, stock charts and a product table with pricing,
-  stock and year to date sales data
+  Endpoints used:
+    GET /api/products         → full product list
+    GET /api/products/summary → adds soldAmount + totalRevenue per product
+
+  Both require JWT token in Authorization header.
+
+  API field mapping:
+    /api/products:
+      productKey, productId, productNumber, productName,
+      cost, productType, category, subcategory,
+      maintenance, productLevel, startDate
+
+    /api/products/summary:
+      productId, productName, category, subcategory,
+      cost, productType, soldAmount, totalRevenue
 */
-import { useState, useRef, useEffect } from "react";
+
+import { useState, useEffect, useRef } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import * as Plot from "@observablehq/plot";
 import ChartToggle from "../../components/ChartToggle";
 
 function Products() {
-  const { isDark } = useTheme();
-  const { user }   = useAuth();
-  const t    = isDark ? dark : light;
-  const tier = user?.tier || "Growth";
+  const { isDark }      = useTheme();
+  const { user, token } = useAuth();
+  const t               = isDark ? dark : light;
 
   const stockChartRef = useRef(null);
 
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [statusFilter,   setStatusFilter]   = useState("all");
+  // API state
+  const [products, setProducts] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState(null);
+
+  // Filter state
   const [searchTerm,     setSearchTerm]     = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [typeFilter,     setTypeFilter]     = useState("all");
+  const [sortBy,         setSortBy]         = useState("name");
 
-  const filteredProducts = MOCK_PRODUCTS.filter((p) => {
-    const matchCategory = categoryFilter === "all" || p.category === categoryFilter;
-    const matchStatus   = statusFilter   === "all" || p.status   === statusFilter;
-    const matchSearch   =
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.id.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchCategory && matchStatus && matchSearch;
-  });
-
-  const getStatusColor = (status) => {
-    if (status === "Active")       return t.success;
-    if (status === "Low Stock")    return t.warning;
-    if (status === "Out of Stock") return t.danger;
-    return t.textSecondary;
+  // Auth header
+  const authHeader = {
+    "Authorization": `Bearer ${token}`,
+    "Content-Type":  "application/json",
   };
 
-  // KPIs
-  const totalProducts   = MOCK_PRODUCTS.length;
-  const inStockCount    = MOCK_PRODUCTS.filter(p => p.status === "Active").length;
-  const lowStockCount   = MOCK_PRODUCTS.filter(p => p.status === "Low Stock").length;
-  const outOfStockCount = MOCK_PRODUCTS.filter(p => p.status === "Out of Stock").length;
-
-  // Stock levels 
   useEffect(() => {
-    if (!stockChartRef.current) return;
+    if (!token) return;
+
+    // Fetch products and summary in parallel
+    Promise.all([
+      fetch(`${import.meta.env.VITE_API_URL}/api/products`,       { headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/products/summary`,  { headers: authHeader }),
+    ])
+      .then(async ([productsRes, summaryRes]) => {
+        if (!productsRes.ok) throw new Error("Failed to fetch products");
+
+        const productsData = await productsRes.json();
+
+        let summaryData = [];
+        if (summaryRes.ok) {
+          summaryData = await summaryRes.json();
+        }
+
+        const summaryMap = {};
+        summaryData.forEach((s) => {
+          summaryMap[s.productId] = s;
+        });
+
+        const merged = productsData.map((p) => {
+          const s = summaryMap[p.productId] || {};
+          return {
+            productKey:    p.productKey,
+            productId:     p.productId,
+            productNumber: p.productNumber,
+            name:          p.productName,
+            cost:          p.cost,
+            type:          p.productType,
+            category:      p.category,
+            subcategory:   p.subcategory,
+            maintenance:   p.maintenance,
+            productLevel:  p.productLevel,
+            startDate:     p.startDate,
+            soldAmount:    s.soldAmount   || 0,
+            totalRevenue:  s.totalRevenue || 0,
+          };
+        });
+
+        setProducts(merged);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  // Revenue trend data for ChartToggle
+  // Built from summary data, top products by revenue
+  const revenueChartData = [...products]
+    .sort((a, b) => b.totalRevenue - a.totalRevenue)
+    .slice(0, 12)
+    .map((p, i) => ({
+      monthNum:     i + 1,
+      revenue:      p.totalRevenue,
+      productName:  p.name,
+    }));
+
+  // Stock levels chart - top products by cost
+  useEffect(() => {
+    if (!stockChartRef.current || products.length === 0) return;
     stockChartRef.current.innerHTML = "";
 
-    const stockData = MOCK_PRODUCTS
-      .slice()
-      .sort((a, b) => b.stock - a.stock)
+    const topProducts = [...products]
+      .sort((a, b) => b.soldAmount - a.soldAmount)
       .slice(0, 8)
-      .map(p => ({ name: p.name, stock: p.stock }));
+      .map(p => ({ name: p.name, sold: p.soldAmount }));
 
     const plot = Plot.plot({
       width:        stockChartRef.current.offsetWidth || 400,
       height:       260,
-      marginLeft:   120,
+      marginLeft:   140,
       marginBottom: 38,
       marginTop:    8,
       marginRight:  16,
       marks: [
-        Plot.barX(stockData, {
-          x:    "stock",
+        Plot.barX(topProducts, {
+          x:    "sold",
           y:    "name",
           fill: isDark ? "#7c9fff" : "#1a2a6c",
           rx:   3,
           sort: { y: "-x" },
         }),
-        Plot.text(stockData, {
-          x:          "stock",
+        Plot.text(topProducts, {
+          x:          "sold",
           y:          "name",
-          text:       (d) => d.stock,
+          text:       (d) => d.sold,
           dx:         8,
           fill:       isDark ? "#e2e8f0" : "#1a2a6c",
           fontSize:   "11px",
@@ -81,7 +141,12 @@ function Products() {
         }),
         Plot.ruleX([0]),
       ],
-      x: { label: "Units in Stock", grid: true, tickPadding: 6, tickSize: 4 },
+      x: {
+        label:       "Units Sold",
+        grid:        true,
+        tickPadding: 6,
+        tickSize:    4,
+      },
       y: { label: null },
       style: {
         fontSize:   "11px",
@@ -92,18 +157,50 @@ function Products() {
 
     stockChartRef.current.appendChild(plot);
     return () => plot.remove();
-  }, [isDark]);
+  }, [isDark, products]);
+
+  // Values for filters
+  const uniqueCategories = [...new Set(products.map(p => p.category))].filter(Boolean).sort();
+  const uniqueTypes      = [...new Set(products.map(p => p.type))].filter(Boolean).sort();
+
+  // Filter + sort
+  let filtered = products.filter((p) => {
+    const matchSearch   = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          p.productNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchCategory = categoryFilter === "all" || p.category === categoryFilter;
+    const matchType     = typeFilter     === "all" || p.type     === typeFilter;
+    return matchSearch && matchCategory && matchType;
+  });
+
+  if (sortBy === "name")     filtered.sort((a, b) => a.name.localeCompare(b.name));
+  if (sortBy === "revenue")  filtered.sort((a, b) => b.totalRevenue - a.totalRevenue);
+  if (sortBy === "sold")     filtered.sort((a, b) => b.soldAmount - a.soldAmount);
+  if (sortBy === "cost")     filtered.sort((a, b) => b.cost - a.cost);
+
+  // KPI values
+  const totalProducts  = products.length;
+  const totalRevenue   = products.reduce((s, p) => s + p.totalRevenue, 0);
+  const totalSold      = products.reduce((s, p) => s + p.soldAmount,   0);
+  const uniqueCatCount = [...new Set(products.map(p => p.category))].length;
+
+  if (!user) {
+    return (
+      <div style={{ ...styles.stateBox, color: t.textSecondary }}>
+        Please sign in to view product data.
+      </div>
+    );
+  }
 
   return (
     <div style={styles.wrapper}>
 
-      {/* Summary cards */}
+      {/* Summary Cards */}
       <div style={styles.summaryGrid}>
         {[
-          { label: "Total Products", value: totalProducts,   accent: t.accentLight  },
-          { label: "In Stock",       value: inStockCount,    accent: t.successLight },
-          { label: "Low Stock",      value: lowStockCount,   accent: t.warningLight },
-          { label: "Out of Stock",   value: outOfStockCount, accent: t.dangerLight  },
+          { label: "Total Products", value: totalProducts,                              accent: t.accentLight  },
+          { label: "Total Revenue",  value: `€${(totalRevenue/1000).toFixed(1)}K`,     accent: t.successLight },
+          { label: "Total Sold",     value: totalSold.toLocaleString(),                 accent: t.accentLight  },
+          { label: "Categories",     value: uniqueCatCount,                             accent: t.warningLight },
         ].map((card) => (
           <div
             key={card.label}
@@ -116,7 +213,9 @@ function Products() {
             <div style={{ ...styles.summaryAccent, background: card.accent }} />
             <div>
               <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>{card.label}</div>
-              <div style={{ ...styles.summaryValue, color: t.textPrimary }}>{card.value}</div>
+              <div style={{ ...styles.summaryValue, color: t.textPrimary }}>
+                {loading ? "-" : card.value}
+              </div>
             </div>
           </div>
         ))}
@@ -125,26 +224,30 @@ function Products() {
       {/* Charts */}
       <div style={styles.chartsGrid}>
 
-        {/* Revenue by month */}
+        {/* Revenue by product  */}
         <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Product Revenue Trend</h3>
-          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Monthly revenue across all products</p>
-          <ChartToggle
-            data={MOCK_REVENUE}
-            xKey="monthNum"
-            yKey="revenue"
-            xFormat={(d) => ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d]}
-            xDomain={[0.5, 12.5]}
-            yLabel="Revenue (€)"
-            height={240}
-            tier={tier}
-          />
+          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Top Products by Revenue</h3>
+          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Top 12 products ranked by total revenue</p>
+          {products.length > 0 ? (
+            <ChartToggle
+              data={revenueChartData}
+              xKey="monthNum"
+              yKey="revenue"
+              yLabel="Revenue (€)"
+              height={240}
+              tier={user?.tier || "GROWTH"}
+            />
+          ) : (
+            <div style={{ ...styles.stateBox, color: t.textSecondary }}>
+              {loading ? "Loading..." : "No data"}
+            </div>
+          )}
         </div>
 
-        {/* Stock levels */}
+        {/* Units sold */}
         <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
-          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Stock Levels</h3>
-          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Current units in stock per product</p>
+          <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Top Products by Units Sold</h3>
+          <p style={{ ...styles.chartSub, color: t.textSecondary }}>Top 8 products by units sold</p>
           <div ref={stockChartRef} style={{ width: "100%", marginTop: "12px" }} />
         </div>
       </div>
@@ -153,7 +256,7 @@ function Products() {
       <div style={{ ...styles.filterBar, background: t.cardBg, border: `1px solid ${t.border}` }}>
         <input
           type="text"
-          placeholder="Search by name or ID..."
+          placeholder="Search by name or product number..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
@@ -166,33 +269,28 @@ function Products() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          style={{
-            ...styles.select,
-            background: t.inputBg,
-            border:     `1px solid ${t.border}`,
-            color:      t.textPrimary,
-          }}
+          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
         >
           <option value="all">All Categories</option>
-          <option value="Basic">Basic</option>
-          <option value="Professional">Professional</option>
-          <option value="Enterprise">Enterprise</option>
-          <option value="Add-on">Add-on</option>
+          {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          style={{
-            ...styles.select,
-            background: t.inputBg,
-            border:     `1px solid ${t.border}`,
-            color:      t.textPrimary,
-          }}
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
         >
-          <option value="all">All Status</option>
-          <option value="Active">Active</option>
-          <option value="Low Stock">Low Stock</option>
-          <option value="Out of Stock">Out of Stock</option>
+          <option value="all">All Types</option>
+          {uniqueTypes.map(tp => <option key={tp} value={tp}>{tp}</option>)}
+        </select>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
+        >
+          <option value="name">Sort by Name</option>
+          <option value="revenue">Sort by Revenue</option>
+          <option value="sold">Sort by Units Sold</option>
+          <option value="cost">Sort by Cost</option>
         </select>
       </div>
 
@@ -200,104 +298,76 @@ function Products() {
       <div style={{ ...styles.tableCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
         <div style={styles.tableHeader}>
           <div>
-            <h3 style={{ ...styles.chartTitle, color: t.textPrimary }}>Product Catalog</h3>
-            <p style={{ ...styles.chartSub, color: t.textSecondary }}>{filteredProducts.length} results</p>
+            <h3 style={{ ...styles.tableTitle, color: t.textPrimary }}>Product Catalog</h3>
+            <p style={{ ...styles.tableSub, color: t.textSecondary }}>
+              {loading ? "Loading..." : `${filtered.length} of ${totalProducts} products`}
+            </p>
           </div>
-          <button style={styles.addBtn}>+ Add Product</button>
         </div>
 
-        <div style={styles.tableWrapper}>
-          <table style={styles.table}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${t.border}` }}>
-                {["Product ID","Name","Category","Price","Stock","Sold (YTD)","Revenue (YTD)","Status",""].map((h) => (
-                  <th key={h} style={{ ...styles.th, color: t.textSecondary }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProducts.map((product) => (
-                <tr key={product.id} style={{ borderBottom: `1px solid ${t.borderLight}` }}>
-                  <td style={{ ...styles.td, color: t.textSecondary, fontFamily: "monospace" }}>
-                    {product.id}
-                  </td>
-                  <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "500" }}>
-                    {product.name}
-                  </td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>
-                    {product.category}
-                  </td>
-                  <td style={{ ...styles.td, color: t.textPrimary }}>
-                    €{product.price.toLocaleString()}
-                  </td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>
-                    {product.stock}
-                  </td>
-                  <td style={{ ...styles.td, color: t.textSecondary }}>
-                    {product.sold}
-                  </td>
-                  <td style={{ ...styles.td, color: t.textPrimary }}>
-                    €{(product.price * product.sold).toLocaleString()}
-                  </td>
-                  <td style={{ ...styles.td }}>
-                    <span
-                      style={{
-                        ...styles.statusBadge,
-                        background: getStatusColor(product.status),
-                        color:      "#fff",
-                      }}
-                    >
-                      {product.status}
-                    </span>
-                  </td>
-                  <td style={{ ...styles.td }}>
-                    <button style={{ ...styles.actionBtn, color: t.accent }}>Edit</button>
-                  </td>
+        {loading && (
+          <div style={{ ...styles.stateBox, color: t.textSecondary }}>Loading products...</div>
+        )}
+        {error && !loading && (
+          <div style={{ ...styles.stateBox, color: t.danger }}>Error: {error}</div>
+        )}
+        {!loading && !error && filtered.length === 0 && (
+          <div style={{ ...styles.stateBox, color: t.textSecondary }}>No products match your filters.</div>
+        )}
+
+        {!loading && !error && filtered.length > 0 && (
+          <div style={styles.tableWrapper}>
+            <table style={styles.table}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+                  {[
+                    "Product No.",
+                    "Name",
+                    "Category",
+                    "Subcategory",
+                    "Type",
+                    "Cost",
+                    "Units Sold",
+                    "Total Revenue",
+                    "Start Date",
+                  ].map((h) => (
+                    <th key={h} style={{ ...styles.th, color: t.textSecondary }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map((p) => (
+                  <tr key={p.productKey} style={{ borderBottom: `1px solid ${t.borderLight}` }}>
+                    <td style={{ ...styles.td, color: t.textSecondary, fontFamily: "monospace" }}>
+                      {p.productNumber}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "500" }}>
+                      {p.name}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{p.category}</td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{p.subcategory}</td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{p.type}</td>
+                    <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "600" }}>
+                      €{p.cost.toLocaleString()}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>
+                      {p.soldAmount.toLocaleString()}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textPrimary, fontWeight: "600" }}>
+                      €{p.totalRevenue.toLocaleString()}
+                    </td>
+                    <td style={{ ...styles.td, color: t.textSecondary }}>{p.startDate}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
     </div>
   );
 }
-
-// MOCK DATA
-// TODO: Replace with GET /api/products
-// Once backend is connected, remove MOCK_PRODUCTS and MOCK_REVENUE 
-// Replace with variables from the API fetch 
-const MOCK_PRODUCTS = [
-  { id: "PRD-001", name: "Starter Pack",      category: "Basic",        price: 1250,  stock: 45, sold: 142, status: "Active"       },
-  { id: "PRD-002", name: "Pro License",        category: "Professional", price: 3500,  stock: 28, sold: 89,  status: "Active"       },
-  { id: "PRD-003", name: "Enterprise Plan",    category: "Enterprise",   price: 8500,  stock: 12, sold: 34,  status: "Active"       },
-  { id: "PRD-004", name: "Add-on Bundle",      category: "Add-on",       price: 750,   stock: 0,  sold: 256, status: "Out of Stock" },
-  { id: "PRD-005", name: "Starter Plus",       category: "Basic",        price: 1750,  stock: 38, sold: 98,  status: "Active"       },
-  { id: "PRD-006", name: "Pro Plus",           category: "Professional", price: 4200,  stock: 22, sold: 67,  status: "Active"       },
-  { id: "PRD-007", name: "Enterprise Elite",   category: "Enterprise",   price: 12000, stock: 8,  sold: 23,  status: "Low Stock"    },
-  { id: "PRD-008", name: "Integration Pack",   category: "Add-on",       price: 950,   stock: 15, sold: 145, status: "Active"       },
-  { id: "PRD-009", name: "Analytics Add-on",   category: "Add-on",       price: 650,   stock: 5,  sold: 189, status: "Low Stock"    },
-  { id: "PRD-010", name: "Support Package",    category: "Add-on",       price: 450,   stock: 32, sold: 234, status: "Active"       },
-  { id: "PRD-011", name: "Basic Suite",        category: "Basic",        price: 2100,  stock: 3,  sold: 76,  status: "Low Stock"    },
-  { id: "PRD-012", name: "Pro Suite",          category: "Professional", price: 5500,  stock: 18, sold: 45,  status: "Active"       },
-];
-
-// TODO: Replace with GET /api/products/revenue/monthly
-const MOCK_REVENUE = [
-  { monthNum: 1,  revenue: 32000 },
-  { monthNum: 2,  revenue: 28500 },
-  { monthNum: 3,  revenue: 35200 },
-  { monthNum: 4,  revenue: 31800 },
-  { monthNum: 5,  revenue: 38900 },
-  { monthNum: 6,  revenue: 42100 },
-  { monthNum: 7,  revenue: 39500 },
-  { monthNum: 8,  revenue: 44200 },
-  { monthNum: 9,  revenue: 41800 },
-  { monthNum: 10, revenue: 48500 },
-  { monthNum: 11, revenue: 46300 },
-  { monthNum: 12, revenue: 52800 },
-];
 
 // THEME
 const light = {
@@ -308,13 +378,12 @@ const light = {
   borderLight:   "#f0f2f7",
   inputBg:       "#ffffff",
   accent:        "#1a2a6c",
+  accentLight:   "#e0e7ff",
   success:       "#16a34a",
   successLight:  "#dcfce7",
   warning:       "#f59e0b",
   warningLight:  "#fef3c7",
   danger:        "#dc2626",
-  dangerLight:   "#fee2e2",
-  accentLight:   "#e0e7ff",
 };
 
 const dark = {
@@ -325,16 +394,15 @@ const dark = {
   borderLight:   "#1e293b",
   inputBg:       "#0f172a",
   accent:        "#7c9fff",
+  accentLight:   "#1e3a8a",
   success:       "#22c55e",
   successLight:  "#064e3b",
   warning:       "#fbbf24",
   warningLight:  "#78350f",
   danger:        "#ef4444",
-  dangerLight:   "#7f1d1d",
-  accentLight:   "#1e3a8a",
 };
 
-// STYLING
+// ===== STYLES =====
 const styles = {
   wrapper: {
     display:       "flex",
@@ -418,22 +486,26 @@ const styles = {
     alignItems:     "flex-start",
     marginBottom:   "16px",
   },
-  addBtn: {
-    padding:      "8px 16px",
-    background:   "#1a2a6c",
-    color:        "#fff",
-    border:       "none",
-    borderRadius: "6px",
-    fontSize:     "13px",
-    fontWeight:   "600",
-    cursor:       "pointer",
+  tableTitle: {
+    margin:     "0 0 2px 0",
+    fontSize:   "14px",
+    fontWeight: "600",
+  },
+  tableSub: {
+    margin:   0,
+    fontSize: "12px",
+  },
+  stateBox: {
+    padding:   "40px",
+    textAlign: "center",
+    fontSize:  "13px",
   },
   tableWrapper: {
     overflowX: "auto",
   },
   table: {
-    width:           "100%",
-    borderCollapse:  "collapse",
+    width:          "100%",
+    borderCollapse: "collapse",
   },
   th: {
     padding:       "10px 14px",
@@ -446,20 +518,6 @@ const styles = {
   td: {
     padding:  "11px 14px",
     fontSize: "13px",
-  },
-  statusBadge: {
-    padding:      "3px 9px",
-    borderRadius: "20px",
-    fontSize:     "11px",
-    fontWeight:   "600",
-  },
-  actionBtn: {
-    background:     "transparent",
-    border:         "none",
-    fontSize:       "13px",
-    fontWeight:     "500",
-    cursor:         "pointer",
-    textDecoration: "underline",
   },
 };
 

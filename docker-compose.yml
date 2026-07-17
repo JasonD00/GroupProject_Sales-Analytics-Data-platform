@@ -1,0 +1,69 @@
+services:
+
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sales-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: ${SA_PASSWORD}
+      MSSQL_PID: "Express"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - ./docker:/docker
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost,1433", "-U", "sa", "-P", "${SA_PASSWORD}", "-No", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+# Restoring the DB
+  restore:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sales-restore
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - ./docker:/docker
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD}
+    command: >
+      /bin/bash -c "
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver,1433 -U sa -P \"$SA_PASSWORD\" -No -Q 'CREATE DATABASE DW' &&
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver,1433 -U sa -P \"$SA_PASSWORD\" -No -d DW -i /docker/script.sql &&
+        echo 'Database setup complete'
+      "
+    restart: "no"
+
+# API - Change .env in prject root for variables -- Jason
+  api:
+    build: .
+    container_name: sales-api
+    depends_on:
+      restore:
+        condition: service_completed_successfully
+    environment:
+      DB_URL: jdbc:sqlserver://sqlserver:1433;databaseName=DW;encrypt=false;trustServerCertificate=true
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8080:8080"
+    restart: on-failure
+
+# Frontend
+  frontend:
+    build: ./frontend
+    container_name: sales-frontend
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+    restart: on-failure
+
+volumes:
+  sqlserver-data:

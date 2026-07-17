@@ -26,12 +26,12 @@ import java.util.List;
 
  */
 
-@Component
+@Component("jwtAuthFilter")
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtConfig jwtConfig;
-    private final UserRepository userRepository; // I havnt used this yet, future changes...
+    private final UserRepository userRepository;
 
     // Filter logic, receive requests and responses and the rest of the filter chain
     @Override
@@ -40,6 +40,13 @@ public class JwtFilter extends OncePerRequestFilter {
             HttpServletResponse res,
             FilterChain chain
     ) throws IOException, ServletException {
+
+        // skip filter entirely for auth endpoints (my docker issues fix)
+        String path = req.getRequestURI();
+        if (path.startsWith("/api/auth/")) {
+            chain.doFilter(req, res);
+            return;
+        }
 
         // Read the auth header from request
         final String authorizationHeader = req.getHeader("Authorization");

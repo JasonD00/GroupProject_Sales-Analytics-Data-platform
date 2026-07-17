@@ -1,8 +1,12 @@
 package com.salesplatform.sales_analytics_api.config;
 
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -24,36 +28,38 @@ public class SecurityConfig {
 
     private final JwtFilter jwtAuthFilter;
 
+    //used by AuthService 
     @Bean
-    public BCryptPasswordEncoder bCryptPasswordEncoder() {
+    public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-
-                        // All users of each tier can access - sales, clients and products
-                        .requestMatchers("/api/sales/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
-                        .requestMatchers("/api/clients/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
-                        .requestMatchers("/api/products/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
-
-                        // Pro and Enterprise can use these
-                        .requestMatchers("/api/territory/**").hasAnyRole("PRO","ENTERPRISE")
-
-                        // Enterprise Only
-                        .requestMatchers("/api/invoices/**").hasAnyRole("ENTERPRISE")
-
-                        .anyRequest().authenticated()
-                )
-
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(request -> {
+                var config = new org.springframework.web.cors.CorsConfiguration();
+                config.setAllowedOrigins(List.of("http://localhost:5173",  "http://localhost:3000"));
+                config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                config.setAllowedHeaders(List.of("*"));
+                config.setExposedHeaders(List.of("Authorization"));
+                return config;
+            }))
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/sales/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
+                .requestMatchers("/api/clients/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
+                .requestMatchers("/api/products/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
+                .requestMatchers("/api/territory/**").hasAnyRole("PRO", "ENTERPRISE")
+                .requestMatchers("/api/invoices/**").hasAnyRole("ENTERPRISE")
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
