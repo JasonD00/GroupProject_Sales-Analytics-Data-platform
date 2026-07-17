@@ -1,3 +1,6 @@
+/*
+Sarah Molloy
+*/
 package com.salesplatform.sales_analytics_api.service;
 
 import com.salesplatform.sales_analytics_api.dto.InvoiceSummaryResponse;
@@ -9,19 +12,18 @@ import com.salesplatform.sales_analytics_api.repository.InvoiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /*
-       Invoice Service
+    Invoice Service
 
-       Business logic for Invoice data.
-       Exists as a basic request for this data
-
-       InvoiceController --> InvoiceService --> Invoice_Repository --> gold.invoice_status
-
-
-      */
+    InvoiceController
+        -> InvoiceService
+        -> InvoiceRepository
+        -> gold database tables
+*/
 
 @Service
 @RequiredArgsConstructor
@@ -29,37 +31,74 @@ public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
 
-    // Fetch all invoices
+    // Fetch all invoice statuses.
     public List<Invoice_Response> getAllInvoices() {
         return invoiceRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
-    // Fetch invoice by id by (invoiceId)
-    public Invoice_Response getInvoiceById(Long invoiceId) {
-        Invoice invoice  = invoiceRepository.findById(invoiceId)
-                .orElseThrow(() -> new ResourceNotFoundException( "Invoice status not found via key: " + invoiceId));
+    // Fetch one invoice status by its key.
+    public Invoice_Response getInvoiceById(Long invoiceStatusKey) {
+        Invoice invoice = invoiceRepository.findById(invoiceStatusKey)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Invoice status not found via key: "
+                                        + invoiceStatusKey
+                        )
+                );
+
         return mapToResponse(invoice);
     }
 
-    // Fetch invoice summary
-    // Joins fact_sales with dim_clients and dim_invoice_status
+    // Fetch full invoice summary.
     public List<InvoiceSummaryResponse> getInvoiceSummary() {
         return invoiceRepository.findInvoiceSummary()
                 .stream()
-                .map(row -> InvoiceSummaryResponse.builder()
-                        .orderNumber((String) row[0])
-                        .customerName((String) row[1])
-                        .salesAmount(((Number) row[2]).doubleValue())
-                        .orderDate(row[3] != null ?
-                                java.time.LocalDate.parse(row[3].toString()) : null)
-                        .dueDate(row[4] != null ?
-                                java.time.LocalDate.parse(row[4].toString()) : null)
-                        .invoiceStatus((String) row[5])
-                        .build())
-                .collect(Collectors.toList());
+                .map(this::mapSummaryRow)
+                .toList();
+    }
+
+    private InvoiceSummaryResponse mapSummaryRow(Object[] row) {
+        return InvoiceSummaryResponse.builder()
+                .orderNumber(row[0] != null
+                        ? row[0].toString()
+                        : null)
+
+                .customerName(row[1] != null
+                        ? row[1].toString()
+                        : "Unknown customer")
+
+                .salesAmount(row[2] instanceof Number
+                        ? ((Number) row[2]).doubleValue()
+                        : 0.0)
+
+                .orderDate(convertToLocalDate(row[3]))
+
+                .dueDate(convertToLocalDate(row[4]))
+
+                .invoiceStatus(row[5] != null
+                        ? row[5].toString()
+                        : "N/A")
+
+                .build();
+    }
+
+    private LocalDate convertToLocalDate(Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof LocalDate localDate) {
+            return localDate;
+        }
+
+        if (value instanceof Date sqlDate) {
+            return sqlDate.toLocalDate();
+        }
+
+        return LocalDate.parse(value.toString());
     }
 
     private Invoice_Response mapToResponse(Invoice invoice) {
@@ -68,6 +107,4 @@ public class InvoiceService {
                 .invoiceStatus(invoice.getInvoiceStatus())
                 .build();
     }
-
-
 }

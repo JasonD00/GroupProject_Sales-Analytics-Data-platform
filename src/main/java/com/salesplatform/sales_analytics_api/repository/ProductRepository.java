@@ -1,3 +1,4 @@
+//Shemen
 package com.salesplatform.sales_analytics_api.repository;
 
 import com.salesplatform.sales_analytics_api.entity.Product;
@@ -7,22 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-/*
-       Product Repository
-
-       Handles all database access for the Product entity.
-
-       Mapped to: gold.dim_products (read-only view)
-       JpaRepository<Product, Long> Product is the entity, product_key is Long
-
-       Inherited methods used:
-       findAll()
-       findById(id)
-
-       Customer query: join dim_products and fact_sales.
-       Returns a list of every product and details.
-
-*/
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
