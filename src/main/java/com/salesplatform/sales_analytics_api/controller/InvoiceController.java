@@ -1,3 +1,6 @@
+/*
+Sarah Molloy
+*/
 package com.salesplatform.sales_analytics_api.controller;
 
 import com.salesplatform.sales_analytics_api.dto.InvoiceSummaryResponse;
@@ -13,10 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /*
-        Invoice Controller
+    Invoice Controller
 
-       Entry point for HTTP requests (invoice data)
-
+    Entry point for HTTP requests relating to invoice data.
 */
 
 @RestController
@@ -27,20 +29,27 @@ public class InvoiceController {
     private final InvoiceService invoiceService;
 
     // GET /api/invoices
+    // Returns the available invoice statuses.
     @GetMapping
-    public ResponseEntity<List<Invoice_Response>> getAllInvoices() {
-        return  ResponseEntity.ok(invoiceService.getAllInvoices());
-    }
-
-    @GetMapping("/{invoiceStatusKey}")
-    public ResponseEntity<Invoice_Response> getInvoiceByOd(@PathVariable Long invoiceStatusKey ) {
-        return ResponseEntity.ok(invoiceService.getInvoiceById(invoiceStatusKey));
+    public ResponseEntity<List<Invoice_Response>> getAllInvoiceStatuses() {
+        return ResponseEntity.ok(invoiceService.getAllInvoices());
     }
 
     // GET /api/invoices/summary
-    // Invoice details with customer name and status
+    // Returns invoice rows with customer, amount, dates and status.
     @GetMapping("/summary")
     public ResponseEntity<List<InvoiceSummaryResponse>> getInvoiceSummary() {
         return ResponseEntity.ok(invoiceService.getInvoiceSummary());
+    }
+
+    // GET /api/invoices/1
+    // Returns one invoice status by its key.
+    @GetMapping("/{invoiceStatusKey}")
+    public ResponseEntity<Invoice_Response> getInvoiceById(
+            @PathVariable Long invoiceStatusKey
+    ) {
+        return ResponseEntity.ok(
+                invoiceService.getInvoiceById(invoiceStatusKey)
+        );
     }
 }

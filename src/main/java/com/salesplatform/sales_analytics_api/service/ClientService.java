@@ -1,3 +1,6 @@
+/*
+Sarah Molloy
+*/
 package com.salesplatform.sales_analytics_api.service;
 
 import com.salesplatform.sales_analytics_api.dto.ClientResponse;

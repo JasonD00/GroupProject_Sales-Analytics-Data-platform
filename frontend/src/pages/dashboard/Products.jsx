@@ -1,8 +1,4 @@
 /*
-  Products.jsx
-  ------------
-  Product catalog page — Enterprise tier only.
-
   Endpoints used:
     GET /api/products         → full product list
     GET /api/products/summary → adds soldAmount + totalRevenue per product
@@ -55,8 +51,8 @@ function Products() {
 
     // Fetch products and summary in parallel
     Promise.all([
-      fetch("http://localhost:8080/api/products",         { headers: authHeader }),
-      fetch("http://localhost:8080/api/products/summary", { headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/products`,       { headers: authHeader }),
+      fetch(`${import.meta.env.VITE_API_URL}/api/products/summary`,  { headers: authHeader }),
     ])
       .then(async ([productsRes, summaryRes]) => {
         if (!productsRes.ok) throw new Error("Failed to fetch products");
@@ -109,7 +105,7 @@ function Products() {
       productName:  p.name,
     }));
 
-  // Stock levels chart — top products by cost
+  // Stock levels chart - top products by cost
   useEffect(() => {
     if (!stockChartRef.current || products.length === 0) return;
     stockChartRef.current.innerHTML = "";
@@ -218,7 +214,7 @@ function Products() {
             <div>
               <div style={{ ...styles.summaryLabel, color: t.textSecondary }}>{card.label}</div>
               <div style={{ ...styles.summaryValue, color: t.textPrimary }}>
-                {loading ? "—" : card.value}
+                {loading ? "-" : card.value}
               </div>
             </div>
           </div>

@@ -1,3 +1,6 @@
+/*
+Sarah Molloy
+*/
 import { useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -32,64 +35,49 @@ function DataExport() {
     { id: "this_year", label: "This Year" },
   ];
 
-  const generateSampleData = () => {
-    const dataType = DATA_OPTIONS.find(d => d.id === selectedData);
-    
-    const sampleRows = [];
-    
-    if (selectedData === "customers") {
-      sampleRows.push("ID,Name,Email,Region,Total Spend,Status");
-      for (let i = 1; i <= 10; i++) {
-        sampleRows.push(`CUS-00${i},Customer ${i},customer${i}@email.com,Europe,€${(Math.random() * 50000).toFixed(2)},Active`);
-      }
-    } else if (selectedData === "transactions") {
-      sampleRows.push("ID,Date,Customer,Product,Amount,Status");
-      for (let i = 1; i <= 10; i++) {
-        sampleRows.push(`TRX-00${i},2024-01-${String(i).padStart(2, '0')},Customer ${i},Product ${Math.floor(Math.random() * 10)},€${(Math.random() * 5000).toFixed(2)},Completed`);
-      }
-    } else if (selectedData === "sales") {
-      sampleRows.push("Date,Region,Sales Rep,Amount,Target,Achievement");
-      for (let i = 1; i <= 10; i++) {
-        sampleRows.push(`2024-01-${String(i).padStart(2, '0')},North America,Rep ${i},€${(Math.random() * 10000).toFixed(2)},€8000,${(Math.random() * 150).toFixed(0)}%`);
-      }
-    } else if (selectedData === "products") {
-      sampleRows.push("ID,Product Name,Category,Price,Stock,Supplier");
-      for (let i = 1; i <= 10; i++) {
-        sampleRows.push(`PRD-00${i},Product ${i},Category ${Math.floor(Math.random() * 5)},€${(Math.random() * 500).toFixed(2)},${Math.floor(Math.random() * 100)},Supplier ${Math.floor(Math.random() * 5)}`);
-      }
-    }
-    
-    return sampleRows.join("\n");
-  };
-
-  const handleExport = () => {
+  const handleExport = async () => {
     setIsExporting(true);
-    
-    setTimeout(() => {
-      const data = DATA_OPTIONS.find(d => d.id === selectedData);
-      const content = generateSampleData();
-      
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/export?dataType=${selectedData}&format=${selectedFormat}&dateRange=${dateRange}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
+
+      const blob = await response.blob();
+      const data = DATA_OPTIONS.find((d) => d.id === selectedData);
+
       let fileExtension = selectedFormat;
-      if (selectedFormat === "excel") fileExtension = "xlsx";
-      
-      const blob = new Blob([content], { type: "text/plain" });
+      if (selectedFormat === "excel") {
+  fileExtension = "xls";
+}
+
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
+
       link.href = url;
       link.download = `${data.label}-${dateRange}.${fileExtension}`;
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
       window.URL.revokeObjectURL(url);
-      
-      setIsExporting(false);
+
       alert(`✓ Successfully exported ${data.label} as ${selectedFormat.toUpperCase()}`);
-    }, 1000);
+    } catch (error) {
+      console.error(error);
+      alert("Export failed. Please check that the backend is running.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
     <div style={{ ...styles.container, background: t.pageBg }}>
-      
       <div style={styles.header}>
         <h2 style={{ ...styles.title, color: t.textPrimary }}>Data Export</h2>
         <p style={{ ...styles.subtitle, color: t.textSecondary }}>
@@ -98,12 +86,16 @@ function DataExport() {
       </div>
 
       <div style={{ ...styles.card, background: t.cardBg, border: `1px solid ${t.border}` }}>
-        <h3 style={{ ...styles.cardTitle, color: t.textPrimary }}>Export Configuration</h3>
+        <h3 style={{ ...styles.cardTitle, color: t.textPrimary }}>
+          Export Configuration
+        </h3>
 
         <div style={styles.formGrid}>
-          
           <div style={styles.formGroup}>
-            <label style={{ ...styles.label, color: t.textSecondary }}>Select Data to Export</label>
+            <label style={{ ...styles.label, color: t.textSecondary }}>
+              Select Data to Export
+            </label>
+
             <div style={styles.radioGroup}>
               {DATA_OPTIONS.map((option) => (
                 <label key={option.id} style={styles.radioLabel}>
@@ -115,9 +107,9 @@ function DataExport() {
                     onChange={(e) => setSelectedData(e.target.value)}
                     style={styles.radioInput}
                   />
-                  <span style={{ color: t.textPrimary }}>
-                    {option.label}
-                  </span>
+
+                  <span style={{ color: t.textPrimary }}>{option.label}</span>
+
                   <span style={{ ...styles.recordCount, color: t.textSecondary }}>
                     ({option.records} records)
                   </span>
@@ -127,7 +119,10 @@ function DataExport() {
           </div>
 
           <div style={styles.formGroup}>
-            <label style={{ ...styles.label, color: t.textSecondary }}>Select Export Format</label>
+            <label style={{ ...styles.label, color: t.textSecondary }}>
+              Select Export Format
+            </label>
+
             <div style={styles.formatGrid}>
               {FORMAT_OPTIONS.map((format) => (
                 <button
@@ -136,9 +131,10 @@ function DataExport() {
                   style={{
                     ...styles.formatCard,
                     background: selectedFormat === format.id ? t.accent : t.pageBg,
-                    border: selectedFormat === format.id 
-                      ? `2px solid ${t.accent}`
-                      : `1px solid ${t.border}`,
+                    border:
+                      selectedFormat === format.id
+                        ? `2px solid ${t.accent}`
+                        : `1px solid ${t.border}`,
                     color: selectedFormat === format.id ? "#fff" : t.textPrimary,
                   }}
                 >
@@ -150,23 +146,38 @@ function DataExport() {
           </div>
 
           <div style={styles.formGroup}>
-            <label style={{ ...styles.label, color: t.textSecondary }}>Date Range</label>
+            <label style={{ ...styles.label, color: t.textSecondary }}>
+              Date Range
+            </label>
+
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              style={{ ...styles.select, background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
+              style={{
+                ...styles.select,
+                background: t.inputBg,
+                border: `1px solid ${t.border}`,
+                color: t.textPrimary,
+              }}
             >
               {DATE_RANGES.map((range) => (
-                <option key={range.id} value={range.id}>{range.label}</option>
+                <option key={range.id} value={range.id}>
+                  {range.label}
+                </option>
               ))}
             </select>
           </div>
         </div>
 
-        <button 
+        <button
           onClick={handleExport}
           disabled={isExporting}
-          style={{ ...styles.exportBtn, background: t.accent, color: "#fff", opacity: isExporting ? 0.7 : 1 }}
+          style={{
+            ...styles.exportBtn,
+            background: t.accent,
+            color: "#fff",
+            opacity: isExporting ? 0.7 : 1,
+          }}
         >
           {isExporting ? "Exporting..." : `Export ${selectedFormat.toUpperCase()}`}
         </button>

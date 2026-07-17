@@ -1,3 +1,6 @@
+/*
+Sarah Molloy
+*/
 package com.salesplatform.sales_analytics_api.entity;
 
 import jakarta.persistence.*;
@@ -68,7 +71,6 @@ public class Client {
     @Column(name = "create_date")
     private LocalDate createDate;
 }
-
 
 
 

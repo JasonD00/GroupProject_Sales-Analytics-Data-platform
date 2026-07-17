@@ -1,3 +1,4 @@
+//Shemen
 package com.salesplatform.sales_analytics_api.controller;
 
 import com.salesplatform.sales_analytics_api.dto.SalesByTerritoryResponse;
@@ -10,17 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
-/*
-       Sale Controller
-
-       Entry point for HTTP requests (Sales data)
-
-       Endpoints:
-       GET /api/sales                     returns all sales from gold.fact_sales
-       GET /api/sales/{orderNumber}       returns a single sale by its order_number
-
-
-*/
 
 @RestController
 @RequestMapping("/api/sales")
@@ -29,41 +19,40 @@ public class SaleController {
 
     private final SalesService salesService;
 
-    // GET /api/sales
-    // Returns all sales records as a list of SalesResponse DTOs
+
+    // returns all sales records 
     @GetMapping
     public ResponseEntity<List<SalesResponse>> getAllSales() {
 
         return ResponseEntity.ok(salesService.getAllSales());
     }
 
-    // GET /api/sales/{orderNumber}
-    // Returns a single sale matching the given order_number
-    // Returns 404 via ResourceNotFoundException
+    
+    // returns a sales record by order number
     @GetMapping("/{orderNumber}")
     public ResponseEntity<SalesResponse> getSaleByOrderNumber(@PathVariable String orderNumber) {
         return ResponseEntity.ok(salesService.getSaleByOrderNumber(orderNumber));
     }
 
-    // GET /api/sales/client/product/{clientKey}
+    // returns all sales records for a client by client key
     @GetMapping("/client/{clientKey}")
     public ResponseEntity<List<SalesResponse>> getSaleByClientKey(@PathVariable Long clientKey) {
         return ResponseEntity.ok(salesService.getSalesByClient(clientKey));
     }
 
-    // GET /api/sales/total-revenue
+    // returns total revenue from all sales records
     @GetMapping("/total-revenue")
     public ResponseEntity<Double> getTotalRevenue() {
         return ResponseEntity.ok(salesService.getTotalRevenue());
     }
 
-    // GET /api/sales/product/{productKey}
+    // returns all sales records for a product by product key
     @GetMapping("/product/{productKey}")
     public ResponseEntity<List<SalesResponse>> getSalesByProduct(@PathVariable Long productKey) {
         return ResponseEntity.ok(salesService.getSalesByProduct(productKey));
     }
 
-    // GET /api/sales/dateStart to end
+    // returns all sales records for a date range
     @GetMapping("/date")
     public ResponseEntity<List<SalesResponse>> getSalesByDateRange(
             @RequestParam LocalDate start,
@@ -71,8 +60,8 @@ public class SaleController {
         return ResponseEntity.ok(salesService.getSalesByDateRange(start, end));
     }
 
-    // GET /api/sales/territory
-    // Returns aggregated sales data grouped by country and segment
+    
+    // returns aggregated sales data grouped by country and segment
     @GetMapping("/territory")
     public ResponseEntity<List<SalesByTerritoryResponse>> getSalesByTerritory() {
         return ResponseEntity.ok(salesService.getSalesByTerritory());

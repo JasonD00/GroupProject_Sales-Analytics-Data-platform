@@ -104,8 +104,7 @@ CREATE TABLE silver.erp_invoice_transactions (
 Invoice_id NVARCHAR(50),				
 Invoice_ord_num NVARCHAR(50),	
 Invoice_status	NVARCHAR(50),	
-Invoice_issue_dt DATE,
+Invoice_issue_dt DATE,  
 dw_create_date    DATETIME2 DEFAULT GETDATE()
 );
 GO
-

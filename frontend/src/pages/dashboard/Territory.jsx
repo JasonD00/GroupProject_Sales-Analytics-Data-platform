@@ -55,7 +55,7 @@ function Territory() {
 
   useEffect(() => {
     if (!token) return;
-    fetch("http://localhost:8080/api/sales/territory", { headers: authHeader })
+    fetch(`${import.meta.env.VITE_API_URL}/api/sales/territory`, { headers: authHeader })
       .then(r => r.ok ? r.json() : [])
       .then(data => setTerritory(data))
       .catch(err => setError(err.message))
@@ -94,7 +94,7 @@ function Territory() {
   // KPI values
   const totalRevenue  = byCountry.reduce((s, d) => s + d.totalRevenue, 0);
   const totalOrders   = byCountry.reduce((s, d) => s + d.totalOrders,  0);
-  const topCountry    = byCountry[0]?.country || "—";
+  const topCountry    = byCountry[0]?.country || "-";
   const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
   // Revenue by country chart
@@ -221,10 +221,10 @@ function Territory() {
       {/* Summary Cards */}
       <div style={styles.summaryGrid}>
         {[
-          { label: "Total Revenue",   value: loading ? "—" : `€${(totalRevenue / 1000).toFixed(1)}K`, accent: t.successLight },
-          { label: "Total Orders",    value: loading ? "—" : totalOrders.toLocaleString(),             accent: t.accentLight  },
-          { label: "Top Country",     value: loading ? "—" : topCountry,                               accent: t.accentLight  },
-          { label: "Avg Order Value", value: loading ? "—" : `€${avgOrderValue.toFixed(0)}`,           accent: t.warningLight },
+          { label: "Total Revenue",   value: loading ? "-" : `€${(totalRevenue / 1000).toFixed(1)}K`, accent: t.successLight },
+          { label: "Total Orders",    value: loading ? "-" : totalOrders.toLocaleString(),             accent: t.accentLight  },
+          { label: "Top Country",     value: loading ? "-" : topCountry,                               accent: t.accentLight  },
+          { label: "Avg Order Value", value: loading ? "-" : `€${avgOrderValue.toFixed(0)}`,           accent: t.warningLight },
         ].map((card) => (
           <div
             key={card.label}
@@ -316,7 +316,7 @@ function Territory() {
                     opacity:    0.7,
                   }} />
                   <span style={{ ...styles.legendLabel, color: t.textSecondary }}>
-                    {d.country} — €{(d.totalRevenue / 1000).toFixed(1)}K
+                    {d.country} - €{(d.totalRevenue / 1000).toFixed(1)}K
                   </span>
                 </div>
               ))}

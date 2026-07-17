@@ -1,3 +1,4 @@
+//Shemen 
 package com.salesplatform.sales_analytics_api.service;
 
 import com.salesplatform.sales_analytics_api.dto.SalesByTerritoryResponse;
@@ -12,19 +13,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/*
-       Sales Service
-
-       Business logic for Sales data:
-       Exists as:
-       SaleController --> SalesService --> SaleRepository --> gold.fact_sales
-
-
-       Methods:
-       getAllSales():           fetches every sales record from gold.fact_sales
-       getSaleByOrderNumber():  fetches a single sale by its order_number (the natural key)
-       mapToResponse(sales):    converts a Sales entity into a SalesResponse DTO
-*/
 
 @Service
 @RequiredArgsConstructor

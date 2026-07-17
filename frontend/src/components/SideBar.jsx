@@ -7,8 +7,8 @@
 
   Tier access rules:
     - GROWTH - Overview, Customers, Settings
-    - PRO - + Sales, Territory, Invoices, Reports, Data Export
-    - ENTERPRISE - + Products (and all PRO features)
+    - PRO - + Sales, Territory, Invoices, Data Export
+    - ENTERPRISE - + Products, Summaries (and all PRO features)
 
   Props:
     - activeNav (string)   - ID of the currently active page
@@ -23,7 +23,7 @@
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
-// Main navigation items — tier controls visibility
+// Main navigation items
 // Tiers are uppercase to match what the backend JWT returns
 const NAV_ITEMS = [
   { id: "overview",   label: "Overview",   tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
@@ -32,16 +32,16 @@ const NAV_ITEMS = [
   { id: "products",   label: "Products",   tiers: ["ENTERPRISE"]                  },
   { id: "territory",  label: "Territory",  tiers: ["PRO", "ENTERPRISE"]           },
   { id: "invoices",   label: "Invoices",   tiers: ["PRO", "ENTERPRISE"]           },
+  { id: "summaries",   label: "Summaries", tiers: ["ENTERPRISE"]                  },
 ];
 
 // Feature items shown below a divider
 const FEATURE_ITEMS = [
-  { id: "reports",  label: "Reports",     tiers: ["PRO", "ENTERPRISE"]           },
   { id: "export",   label: "Data Export", tiers: ["PRO", "ENTERPRISE"]           },
   { id: "settings", label: "Settings",    tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
 ];
 
-// Supports both uppercase (from backend) and capitalised (legacy)
+// Supports uppercase (from backend) and capitalised
 const TIER_COLORS = {
   GROWTH:     { bg: "#dcfce7", text: "#16a34a" },
   PRO:        { bg: "#dbeafe", text: "#1d4ed8" },
@@ -58,7 +58,7 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
   const { isDark } = useTheme();
   const t          = isDark ? dark : light;
 
-  // Filter nav items by tier — show only Overview if not logged in
+  // Filter nav items by tier - show only Overview if not logged in
   const visibleNavItems = NAV_ITEMS.filter((item) => {
     if (!user) return item.id === "overview";
     return item.tiers.includes(user.tier);
@@ -69,13 +69,12 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
     return item.tiers.includes(user.tier);
   });
 
-  // Safe tier colour lookup with fallback
   const tierColors = user
   ? (TIER_COLORS[user.tier] || DEFAULT_TIER_COLOR)
   : null;
 
 
-  // Display tier capitalised e.g. ENTERPRISE → Enterprise
+  // Display tier capitalised e.g. ENTERPRISE -> Enterprise
   const displayTier = user?.tier
     ? user.tier.charAt(0) + user.tier.slice(1).toLowerCase()
     : "";
@@ -154,7 +153,7 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
         })}
       </nav>
 
-      {/* Tier badge — shown when expanded */}
+      {/* Tier badge */}
       {user && sidebarOpen && (
         <div style={styles.bottomSection}>
           <div style={{ ...styles.tierBadge, background: tierColors.bg, color: tierColors.text }}>
