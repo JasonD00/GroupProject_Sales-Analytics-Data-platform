@@ -56,7 +56,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/clients/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
                 .requestMatchers("/api/products/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
                 .requestMatchers("/api/territory/**").hasAnyRole("PRO", "ENTERPRISE")
-                .requestMatchers("/api/invoices/**").hasAnyRole("ENTERPRISE")
+                .requestMatchers("/api/invoices/**").hasAnyRole("PRO", "ENTERPRISE")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
