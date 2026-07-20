@@ -1,4 +1,3 @@
-//Shemen
 package com.salesplatform.sales_analytics_api.service;
 
 import com.salesplatform.sales_analytics_api.dto.ProductResponse;
@@ -11,6 +10,18 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/*
+       Product Service
+
+       Business logic for Client data.
+       Exists as:
+       ProductController --> ProductService --> ProductRepository --> gold.dim_products
+
+       Methods:
+       getAllProducts()         fetches every product from gold.dim_products
+       getProductById(id)       fetches a single product by their product_key
+       mapToResponse(product)   converts a Product entity into a ProductResponse DTO
+*/
 
 @Service
 @RequiredArgsConstructor
@@ -18,7 +29,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
 
-    // gets all products
+    // Fetch all products from gold.dim_products
     public List<ProductResponse> getAllProducts() {
         return productRepository.findAll()
                 .stream()
@@ -26,7 +37,7 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
-    // gets a single product by product_key
+    // Fetch a single product by product_key
     public ProductResponse getProductById(Long productKey) {
         Product product = productRepository.findById(productKey)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -34,8 +45,8 @@ public class ProductService {
         return mapToResponse(product);
     }
 
-    // gets aggregated product summary
-    // joins dim_products with fact_sales for sold amount and total revenue
+    // Fetch aggregated product summary
+    // Joins dim_products with fact_sales for sold amount and total revenue
     public List<ProductSummaryResponse> getProductSummary() {
         return productRepository.findProductSummary()
                 .stream()
@@ -52,7 +63,7 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
-    // Maps a Product entity ProductResponse DTO
+    // Maps a Product entity --> ProductResponse DTO
     private ProductResponse mapToResponse(Product product) {
         return ProductResponse.builder()
                 .productKey(product.getProductKey())

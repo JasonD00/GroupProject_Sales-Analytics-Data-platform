@@ -23,16 +23,15 @@
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
-// Main navigation items
-// Tiers are uppercase to match what the backend JWT returns
+// Main navigation items - tier controls visibility
 const NAV_ITEMS = [
   { id: "overview",   label: "Overview",   tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
   { id: "sales",      label: "Sales",      tiers: ["PRO", "ENTERPRISE"]           },
   { id: "customers",  label: "Customers",  tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
-  { id: "products",   label: "Products",   tiers: ["ENTERPRISE"]                  },
+  { id: "products",   label: "Products",   tiers: ["PRO", "ENTERPRISE"]           },
   { id: "territory",  label: "Territory",  tiers: ["PRO", "ENTERPRISE"]           },
-  { id: "invoices",   label: "Invoices",   tiers: ["PRO", "ENTERPRISE"]           },
-  { id: "summaries",   label: "Summaries", tiers: ["ENTERPRISE"]                  },
+  { id: "invoices",   label: "Invoices",   tiers: ["ENTERPRISE"]                  },
+  { id: "summaries",  label: "Summaries",  tiers: ["ENTERPRISE"]                  },
 ];
 
 // Feature items shown below a divider
@@ -41,7 +40,7 @@ const FEATURE_ITEMS = [
   { id: "settings", label: "Settings",    tiers: ["GROWTH", "PRO", "ENTERPRISE"] },
 ];
 
-// Supports uppercase (from backend) and capitalised
+// Supports both uppercase and capitalised 
 const TIER_COLORS = {
   GROWTH:     { bg: "#dcfce7", text: "#16a34a" },
   PRO:        { bg: "#dbeafe", text: "#1d4ed8" },
@@ -69,10 +68,10 @@ function Sidebar({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) {
     return item.tiers.includes(user.tier);
   });
 
+  // Safe tier colour lookup with fallback
   const tierColors = user
-  ? (TIER_COLORS[user.tier] || DEFAULT_TIER_COLOR)
-  : null;
-
+    ? (TIER_COLORS[user.tier] || DEFAULT_TIER_COLOR)
+    : null;
 
   // Display tier capitalised e.g. ENTERPRISE -> Enterprise
   const displayTier = user?.tier

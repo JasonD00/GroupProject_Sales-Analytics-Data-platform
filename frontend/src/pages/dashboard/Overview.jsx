@@ -46,17 +46,17 @@ function Overview() {
 
     const fetches = [
       // Total revenue KPI
-      fetch(`${import.meta.env.VITE_API_URL}/api/sales/total-revenue`, { headers: authHeader })
+      fetch("http://localhost:8080/api/sales/total-revenue", { headers: authHeader })
         .then(r => r.ok ? r.json() : null)
         .then(d => setTotalRevenue(d)),
 
       // Customer summary for KPI cards
-      fetch(`${import.meta.env.VITE_API_URL}/api/clients/summary`, { headers: authHeader })
+      fetch("http://localhost:8080/api/clients/summary", { headers: authHeader })
         .then(r => r.ok ? r.json() : [])
         .then(d => setCustomerSummary(d)),
 
       // All sales - used to build monthly revenue trend chart
-      fetch(`${import.meta.env.VITE_API_URL}/api/sales`, { headers: authHeader })
+      fetch("http://localhost:8080/api/sales", { headers: authHeader })
         .then(r => r.ok ? r.json() : [])
         .then(d => setAllSales(d)),
     ];
@@ -64,21 +64,26 @@ function Overview() {
     // Pro+ endpoints
     if (hasFeature("Pro")) {
       fetches.push(
-        fetch(`${import.meta.env.VITE_API_URL}/api/sales/territory`, { headers: authHeader })
+        fetch("http://localhost:8080/api/sales/territory", { headers: authHeader })
           .then(r => r.ok ? r.json() : [])
           .then(d => setTerritory(d)),
 
-        fetch(`${import.meta.env.VITE_API_URL}/api/invoices/summary`, { headers: authHeader })
-          .then(r => r.ok ? r.json() : [])
-          .then(d => setInvoiceSummary(d)),
-
-        fetch(`${import.meta.env.VITE_API_URL}/api/products/summary`,  { headers: authHeader })
+        fetch("http://localhost:8080/api/products/summary", { headers: authHeader })
           .then(r => r.ok ? r.json() : [])
           .then(d => setProductSummary(d)),
 
-        fetch(`${import.meta.env.VITE_API_URL}/api/clients`,  { headers: authHeader })
+        fetch("http://localhost:8080/api/clients", { headers: authHeader })
           .then(r => r.ok ? r.json() : [])
           .then(d => setCustomerData(d)),
+      );
+    }
+
+    // Enterprise-only endpoints
+    if (hasFeature("Enterprise")) {
+      fetches.push(
+        fetch("http://localhost:8080/api/invoices/summary", { headers: authHeader })
+          .then(r => r.ok ? r.json() : [])
+          .then(d => setInvoiceSummary(d)),
       );
     }
 
@@ -429,16 +434,16 @@ function Overview() {
           )}
         </div>
 
-        {/* Invoice Status - Pro+ */}
+        {/* Invoice Status - Enterprise only */}
         <div style={{ ...styles.chartCard, background: t.cardBg, border: `1px solid ${t.border}` }}>
           <div style={styles.chartHeader}>
             <div>
               <div style={{ ...styles.chartTitle, color: t.textPrimary }}>Invoice Status</div>
               <div style={{ ...styles.chartSub, color: t.textSecondary }}>Orders by invoice status</div>
             </div>
-            <span style={{ ...styles.planPill, background: "#dbeafe", color: "#1d4ed8" }}>Pro+</span>
+            <span style={{ ...styles.planPill, background: "#ede9fe", color: "#7c3aed" }}>Enterprise</span>
           </div>
-          {hasFeature("Pro") ? (
+          {hasFeature("Enterprise") ? (
             invoiceStatusData.length > 0 ? (
               <div ref={invoiceChartRef} style={{ width: "100%", marginTop: "8px" }} />
             ) : (
@@ -447,7 +452,7 @@ function Overview() {
               </div>
             )
           ) : (
-            <LockedChart tier="Pro" onUpgrade={openLoginModel} t={t} />
+            <LockedChart tier="Enterprise" onUpgrade={openLoginModel} t={t} />
           )}
         </div>
 

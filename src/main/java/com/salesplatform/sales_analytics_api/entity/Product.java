@@ -1,4 +1,3 @@
-//Shemen
 package com.salesplatform.sales_analytics_api.entity;
 
 import jakarta.persistence.*;
@@ -9,6 +8,18 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Immutable;
 import java.time.LocalDate;
 
+/*  SQL Product (Changed)
+
+    Source ---> Target Mapping = gold layer
+    This entity represents the view = dim.products in the gold layer of the db
+
+    Previous mock data has been changed to represent the complete DB
+
+    @Entity Male the class a JPA entity
+    @Table Map entity to a db table or view
+    @Id define the primary key
+    @Column map field to column
+ */
 
 @Entity
 @Table(name = "dim_products", schema = "gold")

@@ -40,7 +40,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(request -> {
                 var config = new org.springframework.web.cors.CorsConfiguration();
-                config.setAllowedOrigins(List.of("http://localhost:5173",  "http://localhost:3000"));
+                config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(List.of("*"));
                 config.setExposedHeaders(List.of("Authorization"));
@@ -56,7 +56,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/clients/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
                 .requestMatchers("/api/products/**").hasAnyRole("GROWTH", "PRO", "ENTERPRISE")
                 .requestMatchers("/api/territory/**").hasAnyRole("PRO", "ENTERPRISE")
-                .requestMatchers("/api/invoices/**").hasAnyRole("PRO", "ENTERPRISE")
+                .requestMatchers("/api/invoices/**").hasAnyRole("ENTERPRISE")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
