@@ -1,11 +1,17 @@
 /*
 Sarah Molloy
+
+*Josh*
+Updated to send JWT token with the export request, since the
+backend requires authentication on /api/export.
 */
 import { useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
+import { useAuth } from "../../context/AuthContext";
 
 function DataExport() {
   const { isDark } = useTheme();
+  const { token }  = useAuth();
   const t = isDark ? dark : light;
 
   const [selectedData, setSelectedData] = useState("customers");
@@ -40,7 +46,12 @@ function DataExport() {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/export?dataType=${selectedData}&format=${selectedFormat}&dateRange=${dateRange}`
+        `http://localhost:8080/api/export?dataType=${selectedData}&format=${selectedFormat}&dateRange=${dateRange}`,
+        {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        }
       );
 
       if (!response.ok) {
@@ -52,8 +63,8 @@ function DataExport() {
 
       let fileExtension = selectedFormat;
       if (selectedFormat === "excel") {
-  fileExtension = "xls";
-}
+        fileExtension = "xls";
+      }
 
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
