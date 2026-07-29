@@ -85,7 +85,7 @@ docker-compose up --build
 ```
 
 **What this does automatically:**
-1. Restores the SQL Server Data Warehouse (DW).
+1. Restores the SQL Server Data Warehouse (script.sql).
 2. Compiles and starts the Spring Boot API.
 3. Builds and serves the React frontend production asset.
 
