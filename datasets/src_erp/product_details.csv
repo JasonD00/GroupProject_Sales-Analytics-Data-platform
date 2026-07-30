@@ -1,0 +1,101 @@
+product_key,Product_category,Product_subcategory,Product_maintenance,product_level
+PRD00000001,Bikes,Road,Annual Service,22
+PRD00000002,Bikes,Mountain,Annual Service,21
+PRD00000003,Bikes,Hybrid,Annual Service,16
+PRD00000004,Bikes,Road,Annual Service,30
+PRD00000005,Bikes,Mountain,Annual Service,40
+PRD00000006,Bikes,Hybrid,Annual Service,41
+PRD00000007,Bikes,Road,Annual Service,44
+PRD00000008,Bikes,Mountain,Annual Service,23
+PRD00000009,Bikes,Hybrid,Annual Service,32
+PRD00000010,Bikes,Road,Annual Service,31
+PRD00000011,Parts & Accessories,Accessories,None,32
+PRD00000012,Parts & Accessories,Accessories,None,46
+PRD00000013,Parts & Accessories,Accessories,None,16
+PRD00000014,Apparel,Cycling Wear,None,36
+PRD00000015,Apparel,Cycling Wear,None,34
+PRD00000016,Apparel,Cycling Wear,None,51
+PRD00000017,Apparel,Cycling Wear,None,13
+PRD00000018,Apparel,Cycling Wear,None,46
+PRD00000019,Apparel,Cycling Wear,None,10
+PRD00000020,Apparel,Cycling Wear,None,24
+PRD00000021,Parts & Accessories,Accessories,None,35
+PRD00000022,Parts & Accessories,Accessories,None,45
+PRD00000023,Parts & Accessories,Accessories,None,43
+PRD00000024,Parts & Accessories,Accessories,None,43
+PRD00000025,Parts & Accessories,Accessories,None,26
+PRD00000026,Parts & Accessories,Accessories,None,9
+PRD00000027,Parts & Accessories,Accessories,None,53
+PRD00000028,Parts & Accessories,Accessories,None,19
+PRD00000029,Parts & Accessories,Accessories,None,46
+PRD00000030,Parts & Accessories,Accessories,None,22
+PRD00000031,Bikes,Road,Annual Service,17
+PRD00000032,Bikes,Mountain,Annual Service,15
+PRD00000033,Bikes,Hybrid,Annual Service,12
+PRD00000034,Bikes,Road,Annual Service,4
+PRD00000035,Bikes,Mountain,Annual Service,5
+PRD00000036,Bikes,Hybrid,Annual Service,18
+PRD00000037,Bikes,Road,Annual Service,33
+PRD00000038,Bikes,Mountain,Annual Service,42
+PRD00000039,Bikes,Hybrid,Annual Service,7
+PRD00000040,Bikes,Road,Annual Service,32
+PRD00000041,Parts & Accessories,Electronics,Biannual Check,29
+PRD00000042,Parts & Accessories,Electronics,Biannual Check,43
+PRD00000043,Parts & Accessories,Electronics,Biannual Check,39
+PRD00000044,Parts & Accessories,Electronics,Biannual Check,16
+PRD00000045,Parts & Accessories,Electronics,Biannual Check,48
+PRD00000046,Parts & Accessories,Electronics,Biannual Check,47
+PRD00000047,Parts & Accessories,Electronics,Biannual Check,27
+PRD00000048,Parts & Accessories,Electronics,Biannual Check,34
+PRD00000049,Parts & Accessories,Electronics,Biannual Check,28
+PRD00000050,Parts & Accessories,Electronics,Biannual Check,18
+PRD00000051,Parts & Accessories,Components,As Required,15
+PRD00000052,Parts & Accessories,Components,As Required,45
+PRD00000053,Parts & Accessories,Components,As Required,48
+PRD00000054,Parts & Accessories,Components,As Required,4
+PRD00000055,Parts & Accessories,Components,As Required,55
+PRD00000056,Parts & Accessories,Components,As Required,12
+PRD00000057,Parts & Accessories,Components,As Required,30
+PRD00000058,Parts & Accessories,Components,As Required,17
+PRD00000059,Parts & Accessories,Components,As Required,14
+PRD00000060,Parts & Accessories,Components,As Required,47
+PRD00000061,Parts & Accessories,Components,As Required,37
+PRD00000062,Parts & Accessories,Components,As Required,33
+PRD00000063,Parts & Accessories,Components,As Required,9
+PRD00000064,Parts & Accessories,Components,As Required,40
+PRD00000065,Parts & Accessories,Components,As Required,19
+PRD00000066,Parts & Accessories,Components,As Required,11
+PRD00000067,Parts & Accessories,Components,As Required,32
+PRD00000068,Parts & Accessories,Components,As Required,12
+PRD00000069,Apparel,Cycling Wear,None,32
+PRD00000070,Apparel,Cycling Wear,None,45
+PRD00000071,Bikes,Road,Annual Service,36
+PRD00000072,Bikes,Mountain,Annual Service,38
+PRD00000073,Bikes,Hybrid,Annual Service,41
+PRD00000074,Bikes,Road,Annual Service,23
+PRD00000075,Bikes,Mountain,Annual Service,51
+PRD00000076,Bikes,Hybrid,Annual Service,31
+PRD00000077,Bikes,Road,Annual Service,42
+PRD00000078,Bikes,Mountain,Annual Service,49
+PRD00000079,Bikes,Hybrid,Annual Service,35
+PRD00000080,Bikes,Road,Annual Service,30
+PRD00000081,Parts & Accessories,Accessories,None,38
+PRD00000082,Parts & Accessories,Accessories,None,31
+PRD00000083,Parts & Accessories,Accessories,None,15
+PRD00000084,Parts & Accessories,Accessories,None,52
+PRD00000085,Parts & Accessories,Accessories,None,33
+PRD00000086,Parts & Accessories,Accessories,None,31
+PRD00000087,Parts & Accessories,Accessories,None,19
+PRD00000088,Parts & Accessories,Accessories,None,51
+PRD00000089,Parts & Accessories,Accessories,None,18
+PRD00000090,Parts & Accessories,Accessories,None,45
+PRD00000091,Parts & Accessories,Electronics,Biannual Check,20
+PRD00000092,Parts & Accessories,Electronics,Biannual Check,36
+PRD00000093,Apparel,Cycling Wear,None,35
+PRD00000094,Apparel,Cycling Wear,None,44
+PRD00000095,Apparel,Cycling Wear,None,19
+PRD00000096,Apparel,Cycling Wear,None,21
+PRD00000097,Apparel,Cycling Wear,None,31
+PRD00000098,Apparel,Cycling Wear,None,7
+PRD00000099,Apparel,Cycling Wear,None,49
+PRD00000100,Apparel,Cycling Wear,None,22
