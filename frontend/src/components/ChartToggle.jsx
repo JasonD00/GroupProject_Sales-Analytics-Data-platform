@@ -8,7 +8,7 @@
 import { useRef, useEffect, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 import * as Plot from "@observablehq/plot";
- 
+
 const TIER_CHARTS = {
   // Capitalised (old frontend format)
   Growth:     ["Area"],
@@ -19,7 +19,12 @@ const TIER_CHARTS = {
   PRO:        ["Area", "Line"],
   ENTERPRISE: ["Area", "Line", "Bar"],
 };
- 
+
+// Normalise tier to uppercase so hint checks work regardless of casing
+// (AuthContext stores tiers as uppercase e.g. "GROWTH", but some older
+// callers may still pass capitalised values e.g. "Growth")
+const normaliseTier = (tier) => (tier || "").toUpperCase();
+
 function ChartToggle({
   data    = [],
   xKey    = "x",
@@ -34,21 +39,22 @@ function ChartToggle({
   const t              = isDark ? dark : light;
   const chartRef       = useRef(null);
   const available      = TIER_CHARTS[tier] || ["Area"];
+  const normalisedTier = normaliseTier(tier);
   const [type, setType] = useState("Area");
- 
+
   useEffect(() => {
     if (!available.includes(type)) setType("Area");
   }, [tier]);
- 
+
   useEffect(() => {
     if (!chartRef.current || data.length === 0) return;
     chartRef.current.innerHTML = "";
- 
+
     const width      = chartRef.current.offsetWidth || 500;
     const accent     = isDark ? "#7c9fff" : "#1a2a6c";
     const accentFill = isDark ? "#1e3a8a" : "#dde4f7";
     const marks      = [];
- 
+
     if (type === "Area") {
       marks.push(
         Plot.areaY(data, {
@@ -74,7 +80,7 @@ function ChartToggle({
         Plot.ruleY([0], { stroke: t.rule }),
       );
     }
- 
+
     if (type === "Line") {
       marks.push(
         Plot.lineY(data, {
@@ -93,13 +99,13 @@ function ChartToggle({
         Plot.ruleY([0], { stroke: t.rule }),
       );
     }
- 
+
     if (type === "Bar") {
       const xVals = data.map(d => d[xKey]);
       const xMin  = Math.min(...xVals);
       const xMax  = Math.max(...xVals);
       const barW  = data.length > 1 ? ((xMax - xMin) / data.length) * 0.75 : 0.75;
- 
+
       marks.push(
         Plot.rectY(data, {
           x1:  (d) => d[xKey] - barW / 2,
@@ -112,7 +118,7 @@ function ChartToggle({
         Plot.ruleY([0], { stroke: t.rule }),
       );
     }
- 
+
     const plot = Plot.plot({
       width,
       height,
@@ -138,11 +144,11 @@ function ChartToggle({
       },
       style: { fontSize: "12px", color: t.text, background: "transparent" },
     });
- 
+
     chartRef.current.appendChild(plot);
     return () => plot.remove();
   }, [type, data, isDark, height]);
- 
+
   return (
     <div style={styles.wrapper}>
       <div style={styles.toggleRow}>
@@ -162,14 +168,14 @@ function ChartToggle({
             </button>
           ))}
         </div>
-        {tier === "Growth"     && <span style={{ ...styles.hint, color: t.muted }}>Upgrade to Pro for Line + Bar charts</span>}
-        {tier === "Pro"        && <span style={{ ...styles.hint, color: t.muted }}>Upgrade to Enterprise for Bar charts</span>}
+        {normalisedTier === "GROWTH" && <span style={{ ...styles.hint, color: t.muted }}>Upgrade to Pro for Line + Bar charts</span>}
+        {normalisedTier === "PRO"    && <span style={{ ...styles.hint, color: t.muted }}>Upgrade to Enterprise for Bar charts</span>}
       </div>
       <div ref={chartRef} style={{ width: "100%" }} />
     </div>
   );
 }
- 
+
 const light = {
   text:       "#555",
   rule:       "#e0e4ef",
@@ -184,7 +190,7 @@ const dark = {
   activeText: "#0f172a",
   muted:      "#475569",
 };
- 
+
 const styles = {
   wrapper: {
     display:       "flex",
@@ -215,5 +221,5 @@ const styles = {
     fontSize: "11px",
   },
 };
- 
+
 export default ChartToggle;
