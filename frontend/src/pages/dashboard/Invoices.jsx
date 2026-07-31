@@ -1,4 +1,4 @@
-/*
+/* Josh + Sarah
   Endpoint used:
     GET /api/invoices/summary
     Requires JWT token in Authorization header.
