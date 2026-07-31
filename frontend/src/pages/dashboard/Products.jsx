@@ -1,4 +1,4 @@
-/*
+/*Josh
   Endpoints used:
     GET /api/products         → full product list
     GET /api/products/summary → adds soldAmount + totalRevenue per product
